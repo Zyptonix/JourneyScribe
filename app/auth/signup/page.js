@@ -1,26 +1,10 @@
 'use client';
 import { useState, useRef } from 'react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebaseClient';
+import { db, auth } from '@/lib/firebaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { doc, setDoc, getFirestore } from 'firebase/firestore'; // Import Firestore functions
-
-// Initialize Firebase App and Firestore (assuming __firebase_config and __app_id are available)
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-// Reference to Firestore instance
-let db;
-try {
-  const firebaseApp = require('firebase/app').getApps().length === 0 
-    ? require('firebase/app').initializeApp(firebaseConfig) 
-    : require('firebase/app').getApp();
-  db = getFirestore(firebaseApp);
-} catch (e) {
-  console.error("Firebase initialization error:", e);
-}
-
 
 export default function SignupPage() {
   const [step, setStep] = useState(1); // Current step of the signup process
