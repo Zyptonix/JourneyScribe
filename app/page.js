@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { auth,db } from '@/lib/firebaseClient';
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth'; // Import signOut for logout
 import { getFirestore, doc, getDoc } from 'firebase/firestore'; // Import Firestore functions
-
+import NavigationBar from '@/components/NavigationBar';
 
 
 export default function HomePage() {
@@ -78,42 +78,9 @@ export default function HomePage() {
 
       {/* Overlay to darken and make content readable over the top background, now FIXED */}
       <div className="fixed inset-x-0 top-0 h-[80vh] bg-black opacity-5 "></div>
-
-            {/* Top Navigation Bar */}
-      <nav className="relative z-20 w-full p-4 bg-white/[0.1] bg-opacity-80 backdrop-blur-sm shadow-md">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          {/* Logo/Brand */}
-          <Link href="/" className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            JourneyScribe <span role="img" aria-label="airplane">✈️</span>
-          </Link>
-          {/* Navigation Links */}
-          <div className="space-x-4 flex items-center">
-            <Link href="/features" className="text-slate-900 hover:text-blue-600 font-medium transition-colors">Features</Link>
-            <Link href="/community" className="text-slate-900 hover:text-blue-600 font-medium transition-colors">Community</Link>
-            <Link href="/support" className="text-slate-900 hover:text-blue-600 font-medium transition-colors">Support</Link>
-
-            {loadingAuth ? (
-              // Show a loading spinner or text while checking auth status
-              <div className="px-4 py-2 text-slate-500">Loading...</div>
-            ) : currentUser ? (
-              // User is logged in, show username and Logout button
-              <>
-                
-                <button
-                  onClick={handleLogout}
-                  className="px-4 py-2 rounded-lg bg-red-600 text-white font-semibold shadow-md hover:bg-red-700 transition-colors"
-                  disabled={loadingAuth}
-                >
-                  Sign Out
-                </button>
-              </>
-            ) : (
-              // User is not logged in, show Sign In button
-              <Link href="/auth/login" className="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold shadow-md hover:bg-blue-700 transition-colors">Sign In</Link>
-            )}
-          </div>
-        </div>
-      </nav>
+              {/* Render the NavigationBar component */}
+      <NavigationBar />
+      
 
       {/* Middle Section (Hero) - Content that sits on top of the background image */}
       {/* Increased minHeight to ensure features section starts after the 80vh fixed background */}
@@ -121,9 +88,9 @@ export default function HomePage() {
         style={{ minHeight: '70vh' }} // Ensure content area pushes down past the fixed background
       >
         {/* Hero Content - relative positioning and higher z-index to be on top */}
-        <div className="relative z-20 bg-opacity-20 backdrop-blur-lg rounded-xl p-8 shadow-2xl max-w-2xl transform transition-all duration-300 ease-in-out hover:scale-[1.02]">
+        <div className="relative z-20 bg-opacity-20 backdrop-blur-lg rounded-xl p-8 shadow-2xl max-w-4xl transform transition-all duration-300 ease-in-out hover:scale-[1.02]">
           <h1 className="text-4xl sm:text-5xl font-extrabold text-black mb-4 leading-tight">
-            Plan Your Next Great Adventure
+            Plan | Connect | Travel
           </h1>
           <p className="text-md sm:text-xl text-slate-600 mb-8">
             JourneyScribe is your ultimate travel companion, helping you discover, plan, and share your adventures seamlessly. From personalized itineraries to real-time bookings, your perfect trip starts here.
@@ -147,7 +114,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-5xl sm:text-5xl font-bold text-center text-slate-800 mt-5 mb-20">Explore Our Powerful Features</h2>
           {/* Feature 5: Trip Management & On-the-Go Essentials */}
-          <div className="rounded-xl border-green-500 border-r-2 border-b-2 p-8 flex flex-col md:flex-row items-center gap-8 min-h-[50vh] md:min-h-[60vh]">
+          <div className="rounded-xl border-green-500 border-l-2 border-t-2 p-8 mb-12 flex flex-col md:flex-row items-center gap-8 min-h-[50vh] md:min-h-[60vh]">
             <div className="md:w-1/2 text-center md:text-center">
               <h3 className="text-2xl sm:text-4xl font-bold text-emerald-600 mb-10">Trip Management & Essentials 💼</h3>
               <p className="text-base sm:text-2xl text-slate-700 mb-10">
@@ -171,7 +138,7 @@ export default function HomePage() {
           </div>
 
           {/* Feature 2: Smart Trip Planning */}
-          <div className="rounded-xl border-pink-500 border-r-1 border-b-1 p-8 mb-12 flex flex-col md:flex-row-reverse items-center gap-8 min-h-[60vh] md:min-h-[60vh]">
+          <div className="rounded-xl border-pink-500 border-r-1 border-t-1 p-8 mb-12 flex flex-col md:flex-row-reverse items-center gap-8 min-h-[60vh] md:min-h-[60vh]">
             <div className="md:w-1/2 text-center md:text-right">
               <h3 className="text-3xl sm:text-4xl font-bold text-purple-600 mb-10 text-center">Smart Trip Planning </h3>
               <p className="text-base sm:text-2xl text-slate-500 mb-10">
@@ -195,7 +162,7 @@ export default function HomePage() {
           </div>
 
           {/* Feature 3: Real-Time Bookings */}
-          <div className="rounded-xl border-sky-500 border-r-1 border-b-1 p-8 mb-12 flex flex-col md:flex-row items-center gap-8 min-h-[50vh] md:min-h-[60vh]">
+          <div className="rounded-xl border-sky-500 border-l-1 border-t-1 p-8 mb-12 flex flex-col md:flex-row items-center gap-8 min-h-[50vh] md:min-h-[60vh]">
             <div className="md:w-1/2 text-center md:text-left">
               <h3 className="text-2xl sm:text-4xl font-bold text-indigo-600 mb-10 text-center">Real-Time Bookings 🏨</h3>
               <p className="text-base sm:text-2xl text-slate-500 mb-10">
@@ -219,7 +186,7 @@ export default function HomePage() {
           </div>
 
           {/* Feature 4: Connect & Share */}
-          <div className="rounded-xl border-orange-500 border-r-2 border-b-2 p-8 mb-12 flex flex-col md:flex-row-reverse items-center gap-8 min-h-[50vh] md:min-h-[60vh]">
+          <div className="rounded-xl border-orange-500 border-r-2 border-t-2 p-8 mb-12 flex flex-col md:flex-row-reverse items-center gap-8 min-h-[50vh] md:min-h-[60vh]">
             <div className="md:w-1/2 text-center md:text-right">
               <h3 className="text-2xl sm:text-4xl font-bold text-orange-600 mb-10">Connect & Share </h3>
               <p className="text-base sm:text-2xl text-slate-500 mb-10">
@@ -243,7 +210,7 @@ export default function HomePage() {
           </div>
 
           {/* Feature 1: User Management & Personalization */}
-          <div className=" rounded-xl border-blue-500 border-r-1 border-b-1 p-8 mb-12 flex flex-col md:flex-row items-center gap-40 min-h-[60vh] md:min-h-[60vh]">
+          <div className=" rounded-xl border-blue-500 border-l-1 border-t-1 p-8 mb-12 flex flex-col md:flex-row items-center gap-40 min-h-[60vh] md:min-h-[60vh]">
             <div className="md:w-1/2 text-center md:text-left">
               <h3 className="text-4xl sm:text-5xl font-bold text-blue-600 mb-10 text-center">User Management and Personalization </h3>
               <p className="text-base sm:text-2xl text-slate-500 mb-10">
