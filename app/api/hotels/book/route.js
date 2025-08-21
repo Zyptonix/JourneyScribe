@@ -1,22 +1,36 @@
 
 import { getAmadeusAccessToken } from '@/lib/amadeusToken';
 
-// Helper function to convert currency
 async function convertToBDT(amount, fromCurrency) {
-    if (fromCurrency === 'BDT' || !amount) return parseFloat(amount).toFixed(2);
+    // If the currency is already BDT, no need to convert
+    if (fromCurrency === 'BDT') {
+        return parseFloat(amount).toFixed(2);
+    }
+
     try {
-        const baseUrl = process.env.APP_URL;
-        const res = await fetch(`${baseUrl}/api/convert-currency?to=BDT&amount=${amount}&from=${fromCurrency}`);
-        const json = await res.json();
-        if (res.ok && json.success) {
-            return Math.round(json.convertedAmount);
+        // Using the HexaRate API endpoint
+        const response = await fetch(`https://hexarate.paikama.co/api/rates/latest/${fromCurrency}?target=BDT`);
+        if (!response.ok) {
+            console.error(`Currency conversion API failed with status: ${response.status}`);
+            return null; // Return null on failure to avoid breaking the main request
         }
-        return null;
+        
+        const json = await response.json();
+        if (!json.data || !json.data.mid) {
+            console.error('Rate data missing from currency API response');
+            return null;
+        }
+
+        const rate = json.data.mid;
+        return (parseFloat(amount) * rate).toFixed(2);
+
     } catch (error) {
-        console.error("Currency conversion failed:", error);
-        return null;
+        console.error('Error during currency conversion fetch:', error.message);
+        return null; // Return null on error
     }
 }
+
+
 
 export async function POST(request) {
     const { guestInfo, hotelOfferId, paymentDetails } = await request.json();

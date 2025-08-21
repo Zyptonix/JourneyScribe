@@ -1,27 +1,36 @@
-
 import fetch from 'node-fetch';
 import { getAmadeusAccessToken } from '@/lib/amadeusToken';
 
-// Currency converter from original currency to BDT
+// --- Helper function to convert currency to BDT using a live API ---
 async function convertToBDT(amount, fromCurrency) {
-    const maxRetries = 3;
-    for (let i = 0; i < maxRetries; i++) {
-        try {
-            const baseUrl = process.env.APP_URL;
-            const res = await fetch(`${baseUrl}/api/convert-currency?to=BDT&amount=${amount}&from=${fromCurrency}`);
-            const json = await res.json();
-            if (!res.ok || !json.success) {
+    // If the currency is already BDT, no need to convert
+    if (fromCurrency === 'BDT') {
+        return parseFloat(amount).toFixed(2);
+    }
 
-                throw new Error(json.error || 'Conversion failed');
-            }
-            return Math.round(json.convertedAmount);
-        } catch (error) {
-
-            if (i === maxRetries - 1) throw error;
-            await new Promise(res => setTimeout(res, Math.pow(2, i) * 1000));
+    try {
+        // Using the HexaRate API endpoint
+        const response = await fetch(`https://hexarate.paikama.co/api/rates/latest/${fromCurrency}?target=BDT`);
+        if (!response.ok) {
+            console.error(`Currency conversion API failed with status: ${response.status}`);
+            return null; // Return null on failure to avoid breaking the main request
         }
+        
+        const json = await response.json();
+        if (!json.data || !json.data.mid) {
+            console.error('Rate data missing from currency API response');
+            return null;
+        }
+
+        const rate = json.data.mid;
+        return (parseFloat(amount) * rate).toFixed(2);
+
+    } catch (error) {
+        console.error('Error during currency conversion fetch:', error.message);
+        return null; // Return null on error
     }
 }
+
 
 export async function GET(request) {
     const { searchParams } = new URL(request.url);
@@ -30,12 +39,9 @@ export async function GET(request) {
     const checkOutDate = searchParams.get('checkOutDate');
     const adults = searchParams.get('adults') || '1';
     const roomQuantity = searchParams.get('roomQuantity') || '1';
-    const boardType = searchParams.get('boardType');
-    const includeClosed = searchParams.get('includeClosed');
 
     if (!hotelId || !checkInDate || !checkOutDate) {
         return new Response(JSON.stringify({ error: 'Missing required parameters' }), {
-
             status: 400,
             headers: { 'Content-Type': 'application/json' }
         });
@@ -43,7 +49,6 @@ export async function GET(request) {
 
     try {
         const token = await getAmadeusAccessToken();
-
 
         const hotelOffersUrl = new URL('https://test.api.amadeus.com/v3/shopping/hotel-offers');
         hotelOffersUrl.searchParams.set('hotelIds', hotelId);
@@ -53,10 +58,6 @@ export async function GET(request) {
         hotelOffersUrl.searchParams.set('roomQuantity', roomQuantity);
         hotelOffersUrl.searchParams.set('view', 'FULL_ALL_PRICES');
 
-        if (boardType) hotelOffersUrl.searchParams.set('boardType', boardType);
-        if (includeClosed) hotelOffersUrl.searchParams.set('includeClosed', includeClosed);
-
-
         const hotelRes = await fetch(hotelOffersUrl.toString(), {
             headers: { Authorization: `Bearer ${token}` }
         });
@@ -64,31 +65,31 @@ export async function GET(request) {
         const hotelData = await hotelRes.json();
 
         if (!hotelRes.ok) {
-
             return new Response(JSON.stringify({ error: hotelData.errors?.[0]?.detail || 'Failed to fetch hotel offers' }), {
-
                 status: hotelRes.status,
                 headers: { 'Content-Type': 'application/json' }
             });
         }
-
 
         let simplifiedAllOffers = [];
         if (hotelData.data && hotelData.data.length > 0) {
             for (const offerItem of hotelData.data) {
                 const hotel = offerItem.hotel || {};
                 for (const singleOffer of offerItem.offers || []) {
-
                     let priceBDT = null;
                     let originalPrice = null;
+                    
                     if (singleOffer.price) {
                         originalPrice = `${parseFloat(singleOffer.price.total)} ${singleOffer.price.currency}`;
-                        try {
-                            priceBDT = await convertToBDT(parseFloat(singleOffer.price.total), singleOffer.price.currency);
-                            priceBDT = `${priceBDT} BDT`;
-                        } catch (conversionError) {
-
-                            priceBDT = 'N/A';
+                        
+                        // Call the new async helper function
+                        const convertedAmount = await convertToBDT(singleOffer.price.total, singleOffer.price.currency);
+                        
+                        // Check if the conversion was successful (not null)
+                        if (convertedAmount !== null) {
+                            priceBDT = `${convertedAmount} BDT`;
+                        } else {
+                            priceBDT = 'N/A'; // Fallback value if conversion fails
                         }
                     }
                     
@@ -102,7 +103,6 @@ export async function GET(request) {
                         originalPrice: originalPrice,
                         priceBDT: priceBDT,
                         guests: singleOffer.guests?.adults,
-                        // FIX: Corrected the path to the room category
                         category: singleOffer.room?.typeEstimated?.category || 'N/A',
                         roomDescription: singleOffer.room?.description?.text || 'No description available.',
                         bedType: singleOffer.room?.typeEstimated?.bedType || 'N/A',
@@ -110,7 +110,6 @@ export async function GET(request) {
                         paymentType: singleOffer.policies?.paymentType || 'N/A',
                         cancellationPolicy: cancellationText,
                         isRefundable: isRefundable,
-
                     });
                 }
             }
