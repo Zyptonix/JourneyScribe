@@ -1,252 +1,145 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import NavigationBarLight from '@/components/NavigationBarLight';
+
+import NavigationBarDark from '@/components/NavigationBarDark';
+
+// --- Icon Components ---
+const UserIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>;
+const MailIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>;
+const PhoneIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>;
+const CreditCardIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>;
+const CheckCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
 
 export default function HotelBookingPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+    const router = useRouter();
+    const searchParams = useSearchParams();
 
-  const bookingOfferId = searchParams.get('offerId');
-  const bookingHotelName = searchParams.get('hotelName'); // Received from offers page
+    const bookingOfferId = searchParams.get('offerId');
+    const bookingHotelName = searchParams.get('hotelName');
+    const adults = parseInt(searchParams.get('adults') || '1', 10);
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [bookingSuccessMessage, setBookingSuccessMessage] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [bookingResult, setBookingResult] = useState(null);
 
-  // Booking Form States
-  const [guestFirstName, setGuestFirstName] = useState('');
-  const [guestLastName, setGuestLastName] = useState('');
-  const [guestEmail, setGuestEmail] = useState('');
-  const [guestPhone, setGuestPhone] = useState('');
-  const [cardVendor, setCardVendor] = useState('VI'); // Default to Visa
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiryDate, setExpiryDate] = useState(''); // YYYY-MM
-  const [cardHolderName, setCardHolderName] = useState('');
+    const [guests, setGuests] = useState([]);
+    const [cardVendor, setCardVendor] = useState('VI');
+    const [cardNumber, setCardNumber] = useState('4111111111111111');
+    const [expiryDate, setExpiryDate] = useState('2030-12');
+    const [cardHolderName, setCardHolderName] = useState('JOHN SMITH');
 
-  useEffect(() => {
-    if (!bookingOfferId || !bookingHotelName) {
-      setError("Missing offer details to proceed with booking. Please go back to hotel offers.");
-    }
-  }, [bookingOfferId, bookingHotelName]);
-
-  const handleBookingSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    setBookingSuccessMessage('');
-
-    // Client-side validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(guestEmail)) {
-      setError("Please enter a valid email address.");
-      setLoading(false);
-      return;
-    }
-
-    const phoneRegex = /^\+?[0-9\s-]{7,15}$/;
-    if (!phoneRegex.test(guestPhone)) {
-      setError("Please enter a valid phone number.");
-      setLoading(false);
-      return;
-    }
-
-    if (!/^\d{13,16}$/.test(cardNumber)) {
-        setError("Please enter a valid 13-16 digit card number.");
-        setLoading(false);
-        return;
-    }
-
-    const [expYear, expMonth] = expiryDate.split('-').map(Number);
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
-
-    if (!expiryDate || !expYear || expMonth < 1 || expMonth > 12 ||
-        expYear < currentYear || (expYear === currentYear && expMonth < currentMonth)) {
-        setError("Please enter a valid future expiry date (YYYY-MM).");
-        setLoading(false);
-        return;
-    }
-
-    if (!bookingOfferId || !guestFirstName || !guestLastName || !cardHolderName) { 
-      setError("Please fill in all required guest and payment details.");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const bookingData = {
-        guestInfo: [{
-          title: "MR", // Simplified for demo; would ideally be a selectable option
-          firstName: guestFirstName,
-          lastName: guestLastName,
-          phone: guestPhone,
-          email: guestEmail
-        }],
-        hotelOfferId: bookingOfferId,
-        paymentDetails: {
-          method: "CREDIT_CARD",
-          paymentCard: {
-            paymentCardInfo: {
-              vendorCode: cardVendor,
-              cardNumber: cardNumber,
-              expiryDate: expiryDate,
-              holderName: cardHolderName
-            }
-          }
+    useEffect(() => {
+        if (!bookingOfferId || !bookingHotelName) {
+            setError("Missing offer details. Please go back to select an offer.");
         }
-      };
+        setGuests(Array.from({ length: adults }, () => ({
+            title: 'MR', firstName: '', lastName: '', phone: '', email: ''
+        })));
+    }, [bookingOfferId, bookingHotelName, adults]);
 
-      const response = await fetch('/api/hotels/book', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(bookingData),
-      });
+    const handleGuestChange = (index, field, value) => {
+        const updatedGuests = [...guests];
+        updatedGuests[index][field] = value;
+        setGuests(updatedGuests);
+    };
 
-      const data = await response.json();
+    const handleBookingSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+        
+        try {
+            const bookingData = {
+                guestInfo: guests,
+                hotelOfferId: bookingOfferId,
+                paymentDetails: {
+                    method: "CREDIT_CARD",
+                    paymentCard: { paymentCardInfo: { vendorCode: cardVendor, cardNumber, expiryDate, holderName: cardHolderName } }
+                }
+            };
 
-      if (response.ok && data.success) {
-        setBookingSuccessMessage(`Booking successful! Confirmation ID: ${data.bookingId}`);
-        // Optionally, redirect to a confirmation page or clear form
-        // router.push(`/confirmation?bookingId=${data.bookingId}`);
-        // Clear form fields after successful submission
-        setGuestFirstName(''); setGuestLastName(''); setGuestEmail(''); setGuestPhone('');
-        setCardNumber(''); setExpiryDate(''); setCardHolderName('');
-      } else {
-        setError(data.error || 'Booking failed. Please try again.');
-        console.error("Booking API error response:", data.amadeusResponse);
-      }
-    } catch (err) {
-      console.error("Booking submission error:", err);
-      setError(`Network error during booking: ${err.message}`);
-    } finally {
-      setLoading(false);
+            // --- FIX: Added console.log for debugging ---
+            console.log("Submitting the following data to /api/hotels/book:", JSON.stringify(bookingData, null, 2));
+
+            const response = await fetch('/api/hotels/book', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(bookingData),
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                sessionStorage.setItem('bookingConfirmationData', JSON.stringify(data.amadeusResponse));
+                router.push(`/hotel/confirmation`);
+            } else {
+                setError(data.error || 'Booking failed. Please try again.');
+            }
+        } catch (err) {
+            setError(`Network error during booking: ${err.message}`);
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    const inputStyles = "bg-white/10 text-white placeholder-slate-300 p-3 pl-10 border border-white/20 rounded-lg w-full shadow-[inset_0_0_0_1000px_rgba(0,0,0,0.2)] focus:ring-cyan-400 focus:border-cyan-400";
+
+    if (bookingResult) {
+        return <HotelBookingConfirmationPage bookingData={bookingResult} />;
     }
-  };
 
-  if (!bookingOfferId) {
     return (
-        <div className="min-h-screen p-8 bg-slate-50 font-inter flex items-center justify-center">
-            <p className="text-xl text-red-700">Invalid booking link. Please go back to hotel offers to select an offer.</p>
+        <div className="min-h-screen font-inter">
+            <div className="fixed inset-0 -z-10 bg-gradient-to-br from-cyan-900 via-blue-900 to-black"></div>
+            <NavigationBarDark />
+            <div className="p-4 md:p-8 flex items-center justify-center">
+                <div className="max-w-4xl w-full bg-black/20 backdrop-blur-xl rounded-xl shadow-lg p-8 border border-white/20">
+                    <h1 className="text-3xl font-bold text-center text-white mb-2">Book Your Stay 🔑</h1>
+                    <h2 className="text-xl text-center text-slate-300 mb-8">Confirm Booking for {bookingHotelName}</h2>
+
+                    {error && <p className="mb-4 p-3 bg-red-500/50 text-white rounded-lg text-center">{error}</p>}
+                    
+                    <form onSubmit={handleBookingSubmit} className="space-y-8">
+                        <div className="space-y-6">
+                            {guests.map((guest, index) => (
+                                <div key={index} className="space-y-4 border-t border-white/20 pt-6">
+                                    <h3 className="text-xl font-semibold text-slate-100">Guest {index + 1} Details</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <select value={guest.title} onChange={(e) => handleGuestChange(index, 'title', e.target.value)} className="bg-black/20 text-white p-3 border border-white/20 rounded-lg w-full"><option className="text-black" value="MR">Mr.</option><option className="text-black" value="MS">Ms.</option></select>
+                                        <div className="relative"><div className="absolute left-3 top-3.5"><UserIcon /></div><input type="text" placeholder="First Name" value={guest.firstName} onChange={(e) => handleGuestChange(index, 'firstName', e.target.value)} className={inputStyles} required /></div>
+                                        <div className="relative"><div className="absolute left-3 top-3.5"><UserIcon /></div><input type="text" placeholder="Last Name" value={guest.lastName} onChange={(e) => handleGuestChange(index, 'lastName', e.target.value)} className={inputStyles} required /></div>
+                                        <div className="relative"><div className="absolute left-3 top-3.5"><MailIcon /></div><input type="email" placeholder="Email" value={guest.email} onChange={(e) => handleGuestChange(index, 'email', e.target.value)} className={inputStyles} required /></div>
+                                        <div className="relative"><div className="absolute left-3 top-3.5"><PhoneIcon /></div><input type="tel" placeholder="Phone" value={guest.phone} onChange={(e) => handleGuestChange(index, 'phone', e.target.value)} className={inputStyles} required /></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        
+                        <div className="space-y-4 border-t border-white/20 pt-6">
+                            <h3 className="text-xl font-semibold text-slate-100">Payment Details</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <select value={cardVendor} onChange={(e) => setCardVendor(e.target.value)} className="bg-black/20 text-white p-3 border border-white/20 rounded-lg w-full" required><option className="text-black" value="VI">Visa</option><option className="text-black" value="MC">Mastercard</option></select>
+                                <div className="relative"><div className="absolute left-3 top-3.5"><CreditCardIcon /></div><input type="text" placeholder="Card Number" value={cardNumber} onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, ''))} className={inputStyles} required maxLength="16" /></div>
+                                <input type="month" placeholder="Expiry Date (YYYY-MM)" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} className="bg-black/20 text-white p-3 border border-white/20 rounded-lg w-full shadow-[inset_0_0_0_1000px_rgba(0,0,0,0.2)]" required />
+                                <div className="relative"><div className="absolute left-3 top-3.5"><UserIcon /></div><input type="text" placeholder="Card Holder Name" value={cardHolderName} onChange={(e) => setCardHolderName(e.target.value)} className={inputStyles} required /></div>
+                            </div>
+                        </div>
+
+                        <button type="submit" className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-4 rounded-lg font-semibold hover:from-blue-600 hover:to-cyan-600 transition-colors disabled:opacity-50 mt-6" disabled={loading}>
+                            {loading ? 'Confirming Booking...' : 'Confirm Booking'}
+                        </button>
+                    </form>
+                </div>
+            </div>
         </div>
     );
-  }
+}
 
-  return (
-    <div className="min-h-screen bg-slate-50 font-inter">
-        
-        <div><NavigationBarLight /></div>
-        <div className="p-8 ">
-          <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-6"> {/* Increased max-w to accommodate side-by-side */}
-            <h1 className="text-3xl font-bold text-center text-slate-800 mb-6">Book Your Stay 🔑</h1>
+// --- Confirmation Page Component ---
+// This component remains on a separate page: app/hotel/confirmation/page.js
+// No changes are needed here.
+function HotelBookingConfirmationPage({ bookingData }) {
+    // ...
 
-            {error && (
-              <p className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-center">{error}</p>
-            )}
-            {bookingSuccessMessage && (
-              <p className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg text-center font-semibold">{bookingSuccessMessage}</p>
-            )}
-
-            <h2 className="text-2xl font-bold text-slate-700 mb-4">Confirm Booking for {bookingHotelName}</h2>
-            <p className="text-slate-600 mb-4">Offer ID: {bookingOfferId}</p>
-            <p className="text-slate-600 mb-4">Please provide your details to confirm the booking.</p>
-
-            <form onSubmit={handleBookingSubmit} className="space-y-4">
-              {/* Added a responsive grid for side-by-side layout */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> 
-                {/* Guest Details Section */}
-                <div>
-                  <h3 className="text-xl font-semibold text-slate-700 mb-4">Guest Details</h3>
-                  <div className="space-y-4"> {/* Inner spacing for guest details */}
-                    <input
-                      type="text"
-                      placeholder="First Name"
-                      value={guestFirstName}
-                      onChange={(e) => setGuestFirstName(e.target.value)}
-                      className="text-black p-3 border rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    />
-                    <input
-                      type="text"
-                      placeholder="Last Name"
-                      value={guestLastName}
-                      onChange={(e) => setGuestLastName(e.target.value)}
-                      className="text-black p-3 border rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    />
-                    <input
-                      type="email"
-                      placeholder="Email"
-                      value={guestEmail}
-                      onChange={(e) => setGuestEmail(e.target.value)}
-                      className="text-black p-3 border rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    />
-                    <input
-                      type="tel"
-                      placeholder="Phone (e.g., +1234567890)"
-                      value={guestPhone}
-                      onChange={(e) => setGuestPhone(e.target.value)}
-                      className="text-black p-3 border rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Payment Details Section */}
-                <div>
-                  <h3 className="text-xl font-semibold text-slate-700 mb-4">Payment Details (Dummy)</h3>
-                  <div className="space-y-4"> {/* Inner spacing for payment details */}
-                    <select
-                      value={cardVendor}
-                      onChange={(e) => setCardVendor(e.target.value)}
-                      className="text-black p-3 border rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    >
-                      <option value="VI">Visa</option>
-                      <option value="MC">Mastercard</option>
-                    </select>
-                    <input
-                      type="text"
-                      placeholder="Card Number (13-16 digits)"
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, ''))}
-                      className="text-black p-3 border rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
-                      required
-                      maxLength="16"
-                    />
-                    <input
-                      type="month"
-                      placeholder="Expiry Date (YYYY-MM)"
-                      value={expiryDate}
-                      onChange={(e) => setExpiryDate(e.target.value)}
-                      className="text-black p-3 border rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    />
-                    <input
-                      type="text"
-                      placeholder="Card Holder Name"
-                      value={cardHolderName}
-                      onChange={(e) => setCardHolderName(e.target.value)}
-                      className="text-black p-3 border rounded-lg w-full focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
-              </div> {/* End of grid layout */}
-
-              <button
-                type="submit"
-                className="w-full bg-blue-600 text-white p-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 mt-6" // Added margin top
-                disabled={loading}
-              >
-                {loading ? 'Confirming Booking...' : 'Confirm Booking'}
-              </button>
-            </form>
-          </div>
-        </div>
-    </div>
-  );
 }

@@ -148,20 +148,24 @@ export default function NavigationBarLight() {
   return (
     <nav className="relative z-20 w-full bg-white/[0.1] bg-opacity-80 backdrop-blur-sm shadow-md">
       <div className="container mx-auto flex items-center justify-between">
-        {/* Left section: Logo */}
-        <Link href="/">
-          <img src="/assets/JourneyScribe.png" alt="JourneyScribe" className="h-22 p-2" />
-        </Link>
 
-        {/* Right section: Navigation buttons and user info / Sign In */}
-        <div className="flex items-center space-x-4 md:space-x-6">
-          {/* Navigation Buttons */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Link href="/notifications" className="text-gray-900 hover:text-blue-600 font-medium px-3 py-2 rounded-md transition duration-300">Notifications</Link>
-            <Link href="/Profilepage" className="text-gray-900 hover:text-blue-600 font-medium px-3 py-2 rounded-md transition duration-300">Profile</Link>
-            <Link href="/flight" className="text-gray-900 hover:text-blue-600 font-medium px-3 py-2 rounded-md transition duration-300">Flight</Link>
-            <Link href="/hotel/search" className="text-gray-900 hover:text-blue-600 font-medium px-3 py-2 rounded-md transition duration-300">Hotel</Link>
-          </div>
+        <Link href="/" className="flex items-center">
+          <img src="/assets/LOGO.png" alt="JourneyScribe" className="h-22 p-2 flex-row" />
+          <img src="/assets/NAME.png" alt="JourneyScribe" className="h-22 p-2 flex-row" />
+          </Link>
+
+
+          {/* Right section: Navigation buttons and user info / Sign In */}
+          <div className="flex items-center space-x-4 md:space-x-6">
+            {/* --- PRETTIER NAVIGATION LINKS --- */}
+                    <div className="hidden md:flex items-center space-x-2">
+                        <Link href="/notifications" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Notifications</Link>
+                        <Link href="/Profilepage" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Profile</Link>
+                        <Link href="/flight/search" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Flight</Link>
+                        <Link href="/hotel/search" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Hotel</Link>
+                        <Link href="/blog" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Blogs</Link>        
+                    </div>
+
 
           {/* Conditional User information / Sign In button */}
           {loadingAuth ? (

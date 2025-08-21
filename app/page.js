@@ -96,7 +96,7 @@ export default function HomePage() {
             JourneyScribe is your ultimate travel companion, helping you discover, plan, and share your adventures seamlessly. From personalized itineraries to real-time bookings, your perfect trip starts here.
           </p>
           {!loadingAuth && !currentUser && (
-          <a href="/auth/signup" className="inline-block px-8 py-4 rounded-full bg-cyan-500 text-white text-lg font-semibold shadow-lg hover:bg-cyan-600 transition-colors duration-300 ease-in-out">
+          <a href="/auth/signup" className="inline-block px-8 py-4 rounded-full bg-blue-500 text-white text-lg font-semibold shadow-lg hover:bg-cyan-600 transition-colors duration-300 ease-in-out">
             Start Your Journey Today!
           </a>)}
           {currentUser && (
