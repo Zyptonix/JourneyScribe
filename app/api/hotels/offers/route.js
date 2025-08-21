@@ -7,7 +7,8 @@ async function convertToBDT(amount, fromCurrency) {
     const maxRetries = 3;
     for (let i = 0; i < maxRetries; i++) {
         try {
-            const res = await fetch(`http://localhost:9243/api/convert-currency?to=BDT&amount=${amount}&from=${fromCurrency}`);
+            const baseUrl = process.env.APP_URL;
+            const res = await fetch(`${baseUrl}/api/convert-currency?to=BDT&amount=${amount}&from=${fromCurrency}`);
             const json = await res.json();
             if (!res.ok || !json.success) {
 

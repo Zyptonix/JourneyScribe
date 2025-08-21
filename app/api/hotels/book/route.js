@@ -5,7 +5,8 @@ import { getAmadeusAccessToken } from '@/lib/amadeusToken';
 async function convertToBDT(amount, fromCurrency) {
     if (fromCurrency === 'BDT' || !amount) return parseFloat(amount).toFixed(2);
     try {
-        const res = await fetch(`http://localhost:9243/api/convert-currency?to=BDT&amount=${amount}&from=${fromCurrency}`);
+        const baseUrl = process.env.APP_URL;
+        const res = await fetch(`${baseUrl}/api/convert-currency?to=BDT&amount=${amount}&from=${fromCurrency}`);
         const json = await res.json();
         if (res.ok && json.success) {
             return Math.round(json.convertedAmount);
