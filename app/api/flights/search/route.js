@@ -1,93 +1,113 @@
 import { getAmadeusAccessToken } from '@/lib/amadeusToken'; // Adjust path as needed
 
-// Currency converter from original currency to BDT
+// --- Helper function to convert currency to BDT ---
 async function convertToBDT(amount, fromCurrency) {
-  const res = await fetch(`http://localhost:9243/api/convert-currency?to=BDT&amount=${amount}&from=${fromCurrency}`);
-  const json = await res.json();
-
-  if (!json.success) {
-    throw new Error(json.error || 'Conversion failed');
+  // If the currency is already BDT, no need to convert
+  if (fromCurrency === 'BDT') {
+    return parseFloat(amount).toFixed(2);
   }
 
-  return Math.round(json.convertedAmount);
+  try {
+    // Using the HexaRate API endpoint you provided
+    const response = await fetch(`https://hexarate.paikama.co/api/rates/latest/${fromCurrency}?target=BDT`);
+    if (!response.ok) {
+      console.error(`Currency conversion API failed with status: ${response.status}`);
+      return null; // Return null on failure to avoid breaking the main request
+    }
+    
+    const json = await response.json();
+    if (!json.data || !json.data.mid) {
+      console.error('Rate data missing from currency API response');
+      return null;
+    }
+
+    const rate = json.data.mid;
+    return (parseFloat(amount) * rate).toFixed(2);
+
+  } catch (error) {
+    console.error('Error during currency conversion fetch:', error.message);
+    return null; // Return null on error
+  }
 }
+
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
+
+  // --- Read all parameters from the request ---
   const origin = searchParams.get('origin');
   const destination = searchParams.get('destination');
   const departureDate = searchParams.get('departureDate');
+  const returnDate = searchParams.get('returnDate');
   const adults = searchParams.get('adults') || '1';
+  const children = searchParams.get('children');
+  const infants = searchParams.get('infants');
+  const travelClass = searchParams.get('travelClass');
+  const nonstop = searchParams.get('nonstop');
 
   if (!origin || !destination || !departureDate) {
-    return new Response(JSON.stringify({ error: 'Missing required parameters' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' }
+    return new Response(JSON.stringify({ error: 'Missing required search parameters' }), {
+      status: 400, headers: { 'Content-Type': 'application/json' }
     });
   }
 
   try {
     const token = await getAmadeusAccessToken();
 
+    // --- Build Amadeus API URL ---
     const apiUrl = new URL('https://test.api.amadeus.com/v2/shopping/flight-offers');
     apiUrl.searchParams.set('originLocationCode', origin);
     apiUrl.searchParams.set('destinationLocationCode', destination);
     apiUrl.searchParams.set('departureDate', departureDate);
     apiUrl.searchParams.set('adults', adults);
-    apiUrl.searchParams.set('nonStop', 'false');
-    apiUrl.searchParams.set('max', '5');
+    apiUrl.searchParams.set('max', '10');
 
+    if (returnDate) apiUrl.searchParams.set('returnDate', returnDate);
+    if (children) apiUrl.searchParams.set('children', children);
+    if (infants) apiUrl.searchParams.set('infants', infants);
+    if (travelClass) apiUrl.searchParams.set('travelClass', travelClass);
+    if (nonstop === 'true') apiUrl.searchParams.set('nonStop', 'true');
+
+    // --- Call Amadeus API ---
     const flightRes = await fetch(apiUrl.toString(), {
       headers: { Authorization: `Bearer ${token}` }
     });
-
     const flightData = await flightRes.json();
 
     if (!flightRes.ok) {
-      return new Response(JSON.stringify({ error: flightData }), {
-        status: flightRes.status,
-        headers: { 'Content-Type': 'application/json' }
+      console.error("Amadeus API Error:", flightData);
+      return new Response(JSON.stringify({ error: flightData.errors?.[0]?.detail || 'Failed to fetch flights.' }), {
+        status: flightRes.status, headers: { 'Content-Type': 'application/json' }
       });
     }
 
-const simplified = await Promise.all(
-  flightData.data.map(async (offer) => {
-    const itinerary = offer.itineraries[0];
-    const segments = itinerary.segments;
+    // --- Process and Convert Currency for each offer ---
+    const offersWithBDT = await Promise.all(
+      (flightData.data || []).map(async (offer) => {
+        const originalTotal = offer.price.total;
+        const originalCurrency = offer.price.currency;
+        
+        // Call the conversion helper
+        const totalBDT = await convertToBDT(originalTotal, originalCurrency);
 
-    const from = segments[0].departure.iataCode;
-    const to = segments[segments.length - 1].arrival.iataCode;
-    const hasTransits = segments.length > 1;
+        // Return the original offer with the new BDT price added
+        return {
+          ...offer,
+          price: {
+            ...offer.price,
+            totalBDT: totalBDT, // Add the new field
+          },
+        };
+      })
+    );
 
-    const transitLocations = segments
-      .slice(0, -1) // all except final segment
-      .map(seg => seg.arrival.iataCode); // airports where layovers happen
-
-    const originalPrice = parseFloat(offer.price.total);
-    const currency = offer.price.currency;
-
-    const priceBDT = await convertToBDT(originalPrice, currency);
-
-    return {
-      from,
-      to,
-      hasTransits,
-      transitLocations,
-      originalPrice: `${originalPrice} ${currency}`,
-      priceBDT: `${priceBDT} BDT`
-    };
-  })
-);
-
-    return new Response(JSON.stringify(simplified), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
+    return new Response(JSON.stringify(offersWithBDT), {
+      status: 200, headers: { 'Content-Type': 'application/json' }
     });
 
   } catch (err) {
-    console.error('Error:', err.message);
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
+    console.error('API Route Error:', err.message);
+    return new Response(JSON.stringify({ error: 'An internal server error occurred.' }), {
+      status: 500, headers: { 'Content-Type': 'application/json' }
     });
   }
 }
