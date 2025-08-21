@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+
 import NavigationBarDark from '@/components/NavigationBarDark';
 
 // --- Icon Components ---
@@ -179,4 +180,5 @@ function OfferCard({ offer, onBook }) {
             </div>
         </div>
     );
+
 }

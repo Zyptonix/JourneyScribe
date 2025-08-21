@@ -1,3 +1,4 @@
+
 import { getAmadeusAccessToken } from '@/lib/amadeusToken';
 
 // Helper function to convert currency
@@ -21,6 +22,7 @@ export async function POST(request) {
 
     if (!guestInfo || guestInfo.length === 0 || !hotelOfferId || !paymentDetails) {
         return new Response(JSON.stringify({ error: 'Missing required booking details' }), {
+
             status: 400,
             headers: { 'Content-Type': 'application/json' }
         });
@@ -29,17 +31,21 @@ export async function POST(request) {
     try {
         const token = await getAmadeusAccessToken();
         
+
         const bookingRequestBody = {
             data: {
                 type: 'hotel-order',
                 guests: guestInfo.map((guest, index) => ({
+
                     tid: index + 1,
+
                     title: guest.title,
                     firstName: guest.firstName,
                     lastName: guest.lastName,
                     phone: guest.phone,
                     email: guest.email,
                 })),
+
                 travelAgent: {
                     contact: { email: guestInfo[0]?.email || "default@email.com" }
                 },
@@ -50,17 +56,21 @@ export async function POST(request) {
                 payment: {
                     method: paymentDetails.method,
                     paymentCard: { paymentCardInfo: paymentDetails.paymentCard.paymentCardInfo }
+
                 }
             }
         };
 
         const amadeusBookingUrl = 'https://test.api.amadeus.com/v2/booking/hotel-orders';
+
         const bookingRes = await fetch(amadeusBookingUrl, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
+
                 'X-HTTP-Method-Override': 'POST'
+
             },
             body: JSON.stringify(bookingRequestBody)
         });
@@ -68,6 +78,7 @@ export async function POST(request) {
         const bookingData = await bookingRes.json();
 
         if (bookingRes.ok) {
+
             // --- FIX: Convert currency after successful booking ---
             const offer = bookingData.data?.hotelBookings?.[0]?.hotelOffer;
             if (offer?.price) {
@@ -80,15 +91,18 @@ export async function POST(request) {
             return new Response(JSON.stringify({
                 success: true,
                 amadeusResponse: bookingData
+
             }), {
                 status: 200,
                 headers: { 'Content-Type': 'application/json' }
             });
         } else {
+
             console.error("Amadeus Hotel Booking API Error:", bookingData);
             return new Response(JSON.stringify({
                 success: false,
                 error: bookingData.errors?.[0]?.detail || 'Failed to book hotel.',
+
             }), {
                 status: bookingRes.status,
                 headers: { 'Content-Type': 'application/json' }

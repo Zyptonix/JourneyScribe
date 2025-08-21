@@ -153,14 +153,17 @@ export default function NavigationBar() {
     <>
       <nav className="relative z-20 w-full bg-white/[0.1] bg-opacity-80 backdrop-blur-sm shadow-md">
  <div className="container mx-auto flex items-center justify-between" style={{ color: 'var(--nav-text-color)' }}>
+
           <Link href="/" className="flex items-center">
           <img src="/assets/LOGO.png" alt="JourneyScribe" className="h-22 p-2 flex-row" />
           <img src="/assets/NAME.png" alt="JourneyScribe" className="h-22 p-2 flex-row" />
+
           </Link>
 
 
           {/* Right section: Navigation buttons and user info / Sign In */}
           <div className="flex items-center space-x-4 md:space-x-6">
+
             {/* --- PRETTIER NAVIGATION LINKS --- */}
                     <div className="hidden md:flex items-center space-x-2">
                         <Link href="/notifications" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Notifications</Link>
@@ -169,6 +172,7 @@ export default function NavigationBar() {
                         <Link href="/hotel/search" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Hotel</Link>
                         <Link href="/blog" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Blogs</Link>
                     </div>
+
 
             {/* Conditional User information / Sign In button */}
             {loadingAuth ? (

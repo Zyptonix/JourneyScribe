@@ -148,6 +148,7 @@ export default function NavigationBarLight() {
   return (
     <nav className="relative z-20 w-full bg-white/[0.1] bg-opacity-80 backdrop-blur-sm shadow-md">
       <div className="container mx-auto flex items-center justify-between">
+
         <Link href="/" className="flex items-center">
           <img src="/assets/LOGO.png" alt="JourneyScribe" className="h-22 p-2 flex-row" />
           <img src="/assets/NAME.png" alt="JourneyScribe" className="h-22 p-2 flex-row" />
@@ -164,6 +165,7 @@ export default function NavigationBarLight() {
                         <Link href="/hotel/search" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Hotel</Link>
                         <Link href="/blog" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Blogs</Link>        
                     </div>
+
 
           {/* Conditional User information / Sign In button */}
           {loadingAuth ? (

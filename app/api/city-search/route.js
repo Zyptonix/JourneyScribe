@@ -1,3 +1,4 @@
+
 import { getAmadeusAccessToken } from '@/lib/amadeusToken'; // Adjust path as needed
 
 export async function GET(request) {
@@ -10,6 +11,8 @@ export async function GET(request) {
     // The existing check for keyword length is still useful.
     if (keyword.length < 2) {
         return new Response(JSON.stringify([]), {
+
+
             status: 200,
             headers: { 'Content-Type': 'application/json' }
         });
@@ -17,10 +20,10 @@ export async function GET(request) {
 
     try {
         const token = await getAmadeusAccessToken();
-
         const citySearchUrl = new URL('https://test.api.amadeus.com/v1/reference-data/locations/cities');
         citySearchUrl.searchParams.set('keyword', keyword);
         
+
         const response = await fetch(citySearchUrl.toString(), {
             headers: { Authorization: `Bearer ${token}` }
         });
@@ -29,13 +32,16 @@ export async function GET(request) {
 
         if (!response.ok) {
             console.error("Amadeus City Search API Error:", data);
+
             // The error message you are seeing likely comes from here.
             const errorMessage = data.errors?.[0]?.detail || 'Failed to fetch city suggestions';
             return new Response(JSON.stringify({ error: errorMessage }), {
+
                 status: response.status,
                 headers: { 'Content-Type': 'application/json' }
             });
         }
+
 
         const cities = (data.data || []).map(city => ({
             name: city.name,

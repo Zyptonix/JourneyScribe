@@ -152,4 +152,5 @@ export default function HotelSearchPage() {
             </div>
         </div>
     );
+
 }

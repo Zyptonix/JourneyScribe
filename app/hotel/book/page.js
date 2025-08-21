@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+
 import NavigationBarDark from '@/components/NavigationBarDark';
 
 // --- Icon Components ---
@@ -140,4 +141,5 @@ export default function HotelBookingPage() {
 // No changes are needed here.
 function HotelBookingConfirmationPage({ bookingData }) {
     // ...
+
 }

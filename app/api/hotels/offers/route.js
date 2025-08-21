@@ -1,3 +1,4 @@
+
 import fetch from 'node-fetch';
 import { getAmadeusAccessToken } from '@/lib/amadeusToken';
 
@@ -9,10 +10,12 @@ async function convertToBDT(amount, fromCurrency) {
             const res = await fetch(`http://localhost:9243/api/convert-currency?to=BDT&amount=${amount}&from=${fromCurrency}`);
             const json = await res.json();
             if (!res.ok || !json.success) {
+
                 throw new Error(json.error || 'Conversion failed');
             }
             return Math.round(json.convertedAmount);
         } catch (error) {
+
             if (i === maxRetries - 1) throw error;
             await new Promise(res => setTimeout(res, Math.pow(2, i) * 1000));
         }
@@ -31,6 +34,7 @@ export async function GET(request) {
 
     if (!hotelId || !checkInDate || !checkOutDate) {
         return new Response(JSON.stringify({ error: 'Missing required parameters' }), {
+
             status: 400,
             headers: { 'Content-Type': 'application/json' }
         });
@@ -38,6 +42,7 @@ export async function GET(request) {
 
     try {
         const token = await getAmadeusAccessToken();
+
 
         const hotelOffersUrl = new URL('https://test.api.amadeus.com/v3/shopping/hotel-offers');
         hotelOffersUrl.searchParams.set('hotelIds', hotelId);
@@ -50,6 +55,7 @@ export async function GET(request) {
         if (boardType) hotelOffersUrl.searchParams.set('boardType', boardType);
         if (includeClosed) hotelOffersUrl.searchParams.set('includeClosed', includeClosed);
 
+
         const hotelRes = await fetch(hotelOffersUrl.toString(), {
             headers: { Authorization: `Bearer ${token}` }
         });
@@ -57,17 +63,21 @@ export async function GET(request) {
         const hotelData = await hotelRes.json();
 
         if (!hotelRes.ok) {
+
             return new Response(JSON.stringify({ error: hotelData.errors?.[0]?.detail || 'Failed to fetch hotel offers' }), {
+
                 status: hotelRes.status,
                 headers: { 'Content-Type': 'application/json' }
             });
         }
+
 
         let simplifiedAllOffers = [];
         if (hotelData.data && hotelData.data.length > 0) {
             for (const offerItem of hotelData.data) {
                 const hotel = offerItem.hotel || {};
                 for (const singleOffer of offerItem.offers || []) {
+
                     let priceBDT = null;
                     let originalPrice = null;
                     if (singleOffer.price) {
@@ -76,6 +86,7 @@ export async function GET(request) {
                             priceBDT = await convertToBDT(parseFloat(singleOffer.price.total), singleOffer.price.currency);
                             priceBDT = `${priceBDT} BDT`;
                         } catch (conversionError) {
+
                             priceBDT = 'N/A';
                         }
                     }
@@ -98,6 +109,7 @@ export async function GET(request) {
                         paymentType: singleOffer.policies?.paymentType || 'N/A',
                         cancellationPolicy: cancellationText,
                         isRefundable: isRefundable,
+
                     });
                 }
             }

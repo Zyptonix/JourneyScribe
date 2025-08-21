@@ -1,3 +1,4 @@
+
 import { getAmadeusAccessToken } from '@/lib/amadeusToken';
 import { fetchWithBackoff } from '@/utils/fetchWithBackoff';
 
@@ -13,12 +14,14 @@ export async function GET(request) {
 
     if (!cityCode) {
         return new Response(JSON.stringify({ error: 'Missing required parameter: cityCode' }), {
+
             status: 400,
             headers: { 'Content-Type': 'application/json' }
         });
     }
 
     try {
+
         const token = await getAmadeusAccessToken();
 
         // --- Fetch the list of hotels using all provided filters ---
@@ -35,29 +38,36 @@ export async function GET(request) {
             hotelListUrl.searchParams.set('amenities', amenities);
         }
 
+
         const listResponse = await fetchWithBackoff(hotelListUrl.toString(), {
             headers: { Authorization: `Bearer ${token}` }
         });
+
 
         const hotelsJson = await listResponse.json();
 
         if (!listResponse.ok) {
             return new Response(JSON.stringify({ error: hotelsJson.errors?.[0]?.detail || 'Failed to fetch hotel list' }), {
+
                 status: listResponse.status,
                 headers: { 'Content-Type': 'application/json' }
             });
         }
 
+
         // --- Directly return the list of hotels without checking for offers ---
         // This makes the API significantly faster.
         return new Response(JSON.stringify(hotelsJson.data || []), {
+
             status: 200,
             headers: { 'Content-Type': 'application/json' }
         });
 
     } catch (err) {
+
         console.error("Hotel List API Error:", err.message);
         return new Response(JSON.stringify({ error: "An internal server error occurred." }), {
+
             status: 500,
             headers: { 'Content-Type': 'application/json' }
         });
