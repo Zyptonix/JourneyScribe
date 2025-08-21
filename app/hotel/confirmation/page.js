@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import NavigationBarDark from '@/components/NavigationBarDark';
 
@@ -37,6 +37,7 @@ export default function HotelBookingConfirmationPage() {
     const bookingRef = data?.associatedRecords?.[0]?.reference;
 
     return (
+        <Suspense>
         <div className="min-h-screen font-inter">
             <div className="fixed inset-0 -z-10 bg-gradient-to-br from-cyan-900 via-blue-900 to-black"></div>
             <NavigationBarDark />
@@ -81,5 +82,6 @@ export default function HotelBookingConfirmationPage() {
                 </div>
             </div>
         </div>
+        </Suspense>
     );
 }

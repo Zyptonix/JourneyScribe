@@ -1,27 +1,67 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import NavigationBarLight from '@/components/NavigationBarLight';
 
-
-// --- Icon Components for a richer UI ---
+// --- Icon Components ---
 const BedIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" /></svg>;
 const UsersIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>;
 const PolicyIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 20.417l5.5-5.5a1 1 0 011.414 0l5.5 5.5a12.02 12.02 0 008.618-14.472z" /></svg>;
 
+// --- Loader component for Suspense fallback ---
+const OffersLoader = () => (
+    <div className="min-h-screen bg-slate-100 font-inter">
+        <NavigationBarLight />
+        <div className="p-4 md:p-8">
+            <div className="max-w-5xl mx-auto">
+                <div className="bg-white rounded-xl shadow-md p-6 mb-8 animate-pulse">
+                    <div className="h-8 bg-slate-200 rounded w-3/4 mb-3"></div>
+                    <div className="h-4 bg-slate-200 rounded w-1/2"></div>
+                </div>
+                <div className="flex justify-center items-center h-64">
+                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+);
 
-export default function HotelOffersPage() {
+// --- Component containing the page logic that uses searchParams ---
+function HotelOffersList() {
     const router = useRouter();
     const searchParams = useSearchParams();
     
-    // --- State Management ---
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [offers, setOffers] = useState([]);
 
-    // --- Effect to Fetch Data ---
     useEffect(() => {
         const hotelId = searchParams.get('hotelId');
+        
+        const fetchOffers = async () => {
+            setLoading(true);
+            setError('');
+            setOffers([]);
+            try {
+                const queryParams = new URLSearchParams(searchParams).toString();
+                const response = await fetch(`/api/hotels/offers?${queryParams}`);
+                const responseData = await response.json();
+
+                if (response.ok) {
+                    setOffers(responseData);
+                    if (responseData.length === 0) {
+                        setError(`No available offers found for this hotel on the selected dates.`);
+                    }
+                } else {
+                    setError(responseData.error || 'Failed to fetch offers.');
+                }
+            } catch (err) {
+                setError(`A network error occurred: ${err.message}`);
+            } finally {
+                setLoading(false);
+            }
+        };
+
         if (hotelId) {
             fetchOffers();
         } else {
@@ -30,35 +70,15 @@ export default function HotelOffersPage() {
         }
     }, [searchParams]);
 
-    // --- Data Fetching Logic ---
-    const fetchOffers = async () => {
-        setLoading(true);
-        setError('');
-        setOffers([]);
-        try {
-            const queryParams = new URLSearchParams(searchParams).toString();
-            const response = await fetch(`/api/hotels/offers?${queryParams}`);
-            const responseData = await response.json();
-
-            if (response.ok) {
-                setOffers(responseData);
-                if (responseData.length === 0) {
-                    setError(`No available offers found for this hotel on the selected dates.`);
-                }
-            } else {
-                setError(responseData.error || 'Failed to fetch offers.');
-            }
-        } catch (err) {
-            setError(`A network error occurred: ${err.message}`);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // --- Navigation ---
     const handleInitiateBooking = (offerId) => {
         const hotelName = searchParams.get('hotelName');
-        router.push(`/hotel/book?offerId=${offerId}&hotelName=${encodeURIComponent(hotelName)}`);
+        const adults = searchParams.get('adults') || '1';
+        const query = new URLSearchParams({
+            offerId: offerId,
+            hotelName: hotelName,
+            adults: adults,
+        }).toString();
+        router.push(`/hotel/book?${query}`);
     };
 
     return (
@@ -87,7 +107,16 @@ export default function HotelOffersPage() {
     );
 }
 
-// --- Detailed Offer Card Component ---
+// --- Main Page Export that provides the Suspense boundary ---
+export default function HotelOffersPage() {
+    return (
+        <Suspense fallback={<OffersLoader />}>
+            <HotelOffersList />
+        </Suspense>
+    );
+}
+
+// --- Detailed Offer Card Component (No changes needed) ---
 function OfferCard({ offer, onBook }) {
     return (
         <div className="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-2xl">
@@ -133,5 +162,4 @@ function OfferCard({ offer, onBook }) {
             </div>
         </div>
     );
-
 }

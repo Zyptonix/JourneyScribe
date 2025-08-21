@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import NavigationBar from '@/components/NavigationBar';
 export default function FlightSearchPage() {
   const [loading, setLoading] = useState(false);
@@ -61,7 +61,7 @@ export default function FlightSearchPage() {
   };
 
   return (
-    
+    <Suspense>
     <div className=" min-h-screen  bg-slate-50 font-inter">
       <div><NavigationBar /></div>
       <div className='p-8'>
@@ -162,5 +162,6 @@ export default function FlightSearchPage() {
       </div>
     </div>
     </div>
+    </Suspense>
   );
 }

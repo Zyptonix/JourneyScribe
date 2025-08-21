@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import NavigationBarDark from '@/components/NavigationBarDark';
 import CitySearchInput from '@/components/CitySearchInput';
@@ -96,6 +96,7 @@ export default function HotelSearchPage() {
     };
 
     return (
+        <Suspense>
         <div className="min-h-screen font-inter flex flex-col">
             <div className="fixed inset-0 -z-10 h-full w-full bg-cover bg-center" style={{ backgroundImage: "url('/assets/hotel.jpg')" }}></div>
             <div className="fixed inset-x-0 top-0 h-[100vh] bg-black opacity-20 "></div>
@@ -151,6 +152,7 @@ export default function HotelSearchPage() {
                 </div>
             </div>
         </div>
+        </Suspense>
     );
 
 }

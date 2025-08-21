@@ -1,7 +1,6 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-
 import NavigationBarDark from '@/components/NavigationBarDark';
 
 // --- Icon Components ---
@@ -11,7 +10,20 @@ const PhoneIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w
 const CreditCardIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>;
 const CheckCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
 
-export default function HotelBookingPage() {
+
+// --- A loading component to use as the Suspense fallback ---
+const BookingLoader = () => (
+    <div className="min-h-screen font-inter flex items-center justify-center">
+        <div className="fixed inset-0 -z-10 bg-gradient-to-br from-cyan-900 via-blue-900 to-black"></div>
+        <div className="text-center p-8 bg-black/20 backdrop-blur-xl rounded-xl">
+            <h1 className="text-2xl font-bold text-white">Loading Your Booking...</h1>
+        </div>
+    </div>
+);
+
+
+// --- This new component holds all the logic and uses the search params ---
+function HotelBookingForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -21,7 +33,9 @@ export default function HotelBookingPage() {
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [bookingResult, setBookingResult] = useState(null);
+    
+    // Note: The bookingResult logic was unused, so it's removed for clarity.
+    // The successful booking now redirects directly via router.push().
 
     const [guests, setGuests] = useState([]);
     const [cardVendor, setCardVendor] = useState('VI');
@@ -59,9 +73,6 @@ export default function HotelBookingPage() {
                 }
             };
 
-            // --- FIX: Added console.log for debugging ---
-            console.log("Submitting the following data to /api/hotels/book:", JSON.stringify(bookingData, null, 2));
-
             const response = await fetch('/api/hotels/book', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -84,10 +95,6 @@ export default function HotelBookingPage() {
     };
     
     const inputStyles = "bg-white/10 text-white placeholder-slate-300 p-3 pl-10 border border-white/20 rounded-lg w-full shadow-[inset_0_0_0_1000px_rgba(0,0,0,0.2)] focus:ring-cyan-400 focus:border-cyan-400";
-
-    if (bookingResult) {
-        return <HotelBookingConfirmationPage bookingData={bookingResult} />;
-    }
 
     return (
         <div className="min-h-screen font-inter">
@@ -136,10 +143,13 @@ export default function HotelBookingPage() {
     );
 }
 
-// --- Confirmation Page Component ---
-// This component remains on a separate page: app/hotel/confirmation/page.js
-// No changes are needed here.
-function HotelBookingConfirmationPage({ bookingData }) {
-    // ...
-
+// --- Main Page Export ---
+// This is the actual component for the page route. It provides the
+// Suspense boundary that wraps the component using the dynamic hooks.
+export default function HotelBookingPage() {
+    return (
+        <Suspense fallback={<BookingLoader />}>
+            <HotelBookingForm />
+        </Suspense>
+    );
 }

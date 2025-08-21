@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import NavigationBar from '@/components/NavigationBar';
 
@@ -12,11 +12,23 @@ const PlaneIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w
 const formatDate = (dateTime) => new Date(dateTime).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 const formatTime = (dateTime) => new Date(dateTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-// --- Main Booking Page Component ---
-export default function FlightBookingPage() {
+// --- Loading Component for Suspense Fallback ---
+const BookingLoader = () => (
+    <div className="min-h-screen font-inter flex items-center justify-center">
+        <div className="fixed inset-0 -z-10 bg-cover bg-center" style={{ backgroundImage: "url('/assets/flight.jpg')" }}></div>
+        <div className="fixed inset-0 -z-10 bg-black/20"></div>
+        <div className="text-center p-8 bg-white/40 backdrop-blur-xl rounded-xl">
+            <h1 className="text-2xl font-bold text-slate-800">Loading booking details...</h1>
+        </div>
+    </div>
+);
+
+
+// --- This component now contains the booking logic and uses the hooks ---
+function BookingForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const [initialFlightOffer, setInitialFlightOffer] = useState(null); // Renamed for clarity
+    const [initialFlightOffer, setInitialFlightOffer] = useState(null);
     const [travelers, setTravelers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -51,7 +63,6 @@ export default function FlightBookingPage() {
         setTravelers(updatedTravelers);
     };
 
-    // --- UPDATED SUBMIT HANDLER WITH RE-PRICING LOGIC ---
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -59,7 +70,7 @@ export default function FlightBookingPage() {
         setBookingResult(null);
         
         try {
-            // Step 1: Re-price the flight offer to get the latest version
+            // Step 1: Re-price the flight offer
             const priceResponse = await fetch('/api/flights/price', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -73,7 +84,7 @@ export default function FlightBookingPage() {
                 throw new Error(errorDetail);
             }
 
-            // Step 2: Use the fresh flight offer to make the final booking
+            // Step 2: Use the fresh flight offer for booking
             const bookResponse = await fetch('/api/flights/book', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -202,5 +213,17 @@ function FlightBookingConfirmationPage({ bookingData }) {
                 </div>
             </div>
         </div>
+    );
+}
+
+
+// --- Main Page Export ---
+// This is the component Next.js will render for the route.
+// It provides the Suspense boundary for the client component.
+export default function FlightBookingPage() {
+    return (
+        <Suspense fallback={<BookingLoader />}>
+            <BookingForm />
+        </Suspense>
     );
 }
