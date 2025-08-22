@@ -105,8 +105,8 @@ export default function BlogPage() {
                     ))}
                 </div>
                 
-                <button onClick={() => changePopularBlog(-1)} className="absolute left-4 md:left-16 top-1/2 mt-16 bg-black/30 p-2 rounded-full hover:bg-black/50 z-10"><svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg></button>
-                <button onClick={() => changePopularBlog(1)} className="absolute right-4 md:right-16 top-1/2 mt-16 bg-black/30 p-2 rounded-full hover:bg-black/50 z-10"><svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></button>
+                <button onClick={() => changePopularBlog(-1)} className="absolute left-4 md:left-16 top-1/2 mt-16 bg-black/30 p-2 rounded-full hover:bg-black/50 z-30"><svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg></button>
+                <button onClick={() => changePopularBlog(1)} className="absolute right-4 md:right-16 top-1/2 mt-16 bg-black/30 p-2 rounded-full hover:bg-black/50 z-30"><svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></button>
                 
                 <div className="text-center mt-20">
                     <button onClick={scrollToAllBlogs} className="bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-6 rounded-full transition-colors backdrop-blur-sm">

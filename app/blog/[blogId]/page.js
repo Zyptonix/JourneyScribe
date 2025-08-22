@@ -1,10 +1,11 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebaseClient'; // Make sure db is exported
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore'; // Import Firestore functions
 import NavigationBarDark from '@/components/NavigationBarDark';
+
 
 export default function BlogPostPage() {
     const { blogId } = useParams();
@@ -14,7 +15,7 @@ export default function BlogPostPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [user, setUser] = useState(null);
-
+    const router = useRouter();
     const fetchBlogAndComments = useCallback(async () => {
         if (!blogId) return;
         setLoading(true);
@@ -58,7 +59,7 @@ export default function BlogPostPage() {
             setLoading(false);
         }
     }, [blogId]);
-
+  
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, setUser);
         fetchBlogAndComments();
@@ -75,13 +76,13 @@ export default function BlogPostPage() {
             <div className="fixed inset-0 -z-10 bg-black/60 backdrop-blur-sm"></div>
             <NavigationBarDark />
             {/* --- MODIFIED: Increased width to 9xl --- */}
-            <main className="p-4 md:p-8 max-w-9xl mx-auto">
+            <main className="p-4 md:p-8 max-w-9/10 mx-auto">
                 <div className="bg-slate-900/40 backdrop-blur-xl rounded-2xl shadow-lg border border-white/20 overflow-hidden">
                     
                     {/* --- NEW LAYOUT: Header on top --- */}
                     <div className="p-6 md:p-8">
                         <p className="text-cyan-400 font-semibold">{blog.location}</p>
-                        <h1 className="text-4xl md:text-5xl font-extrabold text-white mt-2">{blog.title}</h1>
+                        <h1 className="text-4xl md:text-4xl font-extrabold text-white mt-2">{blog.title}</h1>
                         <div className="flex items-center gap-4 mt-4 text-md">
                             <div>
                                 <p className="text-slate-200">by <span className="font-semibold">{blog.authorName}</span></p>
@@ -90,15 +91,15 @@ export default function BlogPostPage() {
                             {/* --- ADDED: Chat with Author Button (conditional) --- */}
                             {user && user.uid !== blog.authorId && (
                                 <button
-                                    onClick={() => router.push(`/chat/${blog.authorId}`)}
-                                    className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-4 py-2 rounded-lg text-sm transition-colors"
+                                    onClick={() => router.push(`/chat/`)}
+                                    className="fixed bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-4 py-2 rounded-lg text-sm transition-colors right-10"
                                 >
                                     Chat with Author
                                 </button>
                             )}
                         </div>
                         <div className="flex flex-wrap gap-2 mt-4">
-                            {(blog.tags || []).map(tag => <span key={tag} className="text-md bg-white/10 text-slate-200 px-2 py-1 rounded-full">{tag}</span>)}
+                            {(blog.tags || []).map(tag => <span key={tag} className="text-sm bg-white/10 text-slate-200 px-2 py-1 rounded-full">{tag}</span>)}
                         </div>
                         <p className="text-slate-300 text-xl mt-6 italic">{blog.shortDescription}</p>
                     </div>
@@ -109,7 +110,7 @@ export default function BlogPostPage() {
                             <img src={blog.thumbnail} alt={blog.title} className="w-full h-auto object-cover rounded-lg shadow-lg"/>
                         </div>
                         <div className="w-full lg:w-2/3">
-                            <div className="text-xl prose prose-invert max-w-none text-slate-200 whitespace-pre-wrap">{blog.content}</div>
+                            <div className="text-lg prose prose-invert max-w-none text-slate-200 whitespace-pre-wrap">{blog.content}</div>
                         </div>
 
                     </div>
@@ -121,8 +122,8 @@ export default function BlogPostPage() {
                             {comments.map(comment => (
                                 <div key={comment.id} className="bg-white/5 p-4 rounded-lg">
                                     {/* --- MODIFIED: Bigger and whiter comment text --- */}
-                                    <p className="text-slate-100 text-xl whitespace-pre-wrap">{comment.text}</p>
-                                    <p className="text-lg text-slate-400 mt-2 font-semibold">
+                                    <p className="text-slate-100 text-lg whitespace-pre-wrap">{comment.text}</p>
+                                    <p className="text-md text-slate-400 mt-2 font-semibold">
                                         {/* MODIFIED: Display fullName */}
                                         - {commentAuthors[comment.userId] || 'Anonymous'}
                                     </p>

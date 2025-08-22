@@ -171,16 +171,17 @@ export default function NavigationBar() {
                         <Link href="/flight/search" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Flight</Link>
                         <Link href="/hotel/search" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Hotel</Link>
                         <Link href="/blog" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Blogs</Link>
+                        <Link href="/chat" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Chat</Link>
                     </div>
 
 
             {/* Conditional User information / Sign In button */}
             {loadingAuth ? (
-              <div className="px-4 py-2 text-gray-500 dark:text-gray-400">Loading...</div>
+              <div className="px-4 py-2 text-black ">Loading...</div>
             ) : isUserAuthenticated ? (
               // User is authenticated, show profile picture and name with dropdown
               <div className="relative flex items-center space-x-3 cursor-pointer" onClick={handleUserAreaClick} ref={dropdownRef}>
-                <span className="text-gray-700  text-sm md:text-base font-semibold hidden sm:block">
+                <span className="text-black text-sm md:text-base font-semibold hidden sm:block">
                   {userNameDisplay}
                 </span>
                 <img

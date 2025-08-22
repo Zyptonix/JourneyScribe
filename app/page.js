@@ -169,8 +169,8 @@ export default function HomePage() {
                 Access near real-time flight options from Expedia and GoZayaan, with advanced sorting. Find and book your ideal hotel stay, comparing prices and amenities to ensure the best fit for your journey.
               </p>
               <div className="flex justify-center md:justify-center gap-4">
-                <a href="#" className="px-6 py-3 rounded-lg bg-indigo-500 text-white font-semibold hover:bg-indigo-600 transition-colors">Find Flights</a>
-                <a href="#" className="px-6 py-3 rounded-lg bg-sky-500 text-white font-semibold hover:bg-sky-600 transition-colors">Book Hotels</a>
+                <a href="/flight/search" className="px-6 py-3 rounded-lg bg-indigo-500 text-white font-semibold hover:bg-indigo-600 transition-colors">Find Flights</a>
+                <a href="/hotel/search" className="px-6 py-3 rounded-lg bg-sky-500 text-white font-semibold hover:bg-sky-600 transition-colors">Book Hotels</a>
               </div>
             </div>
             <div className="md:w-1/2 flex justify-center items-center">
@@ -193,8 +193,8 @@ export default function HomePage() {
                 Share your travel stories and experiences on your personal blog. Engage with other travelers through comments and in-app chat, filtered by locations to find like-minded explorers.
               </p>
               <div className="flex justify-center md:justify-center gap-4">
-                <a href="#" className="px-6 py-3 rounded-lg bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors">Start Blogging</a>
-                <a href="#" className="px-6 py-3 rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors">Join Chats</a>
+                <a href="/blog" className="px-6 py-3 rounded-lg bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors">Start Blogging</a>
+                <a href="/chat" className="px-6 py-3 rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors">Join Chats</a>
               </div>
             </div>
             <div className="md:w-1/2 flex justify-center items-center">
@@ -217,8 +217,8 @@ export default function HomePage() {
                 Securely create and manage your account with email/password or social logins. View and edit your profile, set travel preferences, and receive smart notifications tailored just for you. Admins get powerful tools for user and content management.
               </p>
               <div className="flex justify-center md:justify-center gap-4">
-                <a href="#" className="px-6 py-3 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors">Manage Profile</a>
-                <a href="#" className="px-6 py-3 rounded-lg bg-indigo-500 text-white font-semibold hover:bg-indigo-600 transition-colors">My Notifications</a>
+                <a href="/Profilepage" className="px-6 py-3 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors">Manage Profile</a>
+                <a href="/notifications" className="px-6 py-3 rounded-lg bg-indigo-500 text-white font-semibold hover:bg-indigo-600 transition-colors">My Notifications</a>
               </div>
             </div>
             <div className="md:w-1/2 flex justify-center items-center">
