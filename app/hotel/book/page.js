@@ -2,7 +2,8 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import NavigationBarDark from '@/components/NavigationBarDark';
-
+import { auth,db } from '@/lib/firebaseClient';
+import { onAuthStateChanged } from 'firebase/auth';
 // --- Icon Components ---
 const UserIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>;
 const MailIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>;
@@ -26,22 +27,32 @@ const BookingLoader = () => (
 function HotelBookingForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
-
     const bookingOfferId = searchParams.get('offerId');
     const bookingHotelName = searchParams.get('hotelName');
     const adults = parseInt(searchParams.get('adults') || '1', 10);
-
+    // --- STATES ---
+    const [user, setUser] = useState(null);
+    const [authLoading, setAuthLoading] = useState(true);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    
-    // Note: The bookingResult logic was unused, so it's removed for clarity.
-    // The successful booking now redirects directly via router.push().
-
     const [guests, setGuests] = useState([]);
+    // VVV ADD THESE PAYMENT STATES VVV
     const [cardVendor, setCardVendor] = useState('VI');
     const [cardNumber, setCardNumber] = useState('4111111111111111');
     const [expiryDate, setExpiryDate] = useState('2030-12');
     const [cardHolderName, setCardHolderName] = useState('JOHN SMITH');
+
+    // --- EFFECTS ---
+    useEffect(() => {
+        // 2. Listen for authentication state changes
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            setUser(currentUser); // Set user to null if not logged in, or the user object if they are
+            setAuthLoading(false); // We're done checking for a user
+        });
+
+        // Cleanup subscription on unmount
+        return () => unsubscribe();
+    }, []);
 
     useEffect(() => {
         if (!bookingOfferId || !bookingHotelName) {
@@ -62,8 +73,21 @@ function HotelBookingForm() {
         e.preventDefault();
         setLoading(true);
         setError('');
-        
+       if (!user) {
+            setError("You must be signed in to make a booking.");
+            setLoading(false);
+            return;
+        }
+
+     
+            
+            
+          
+            
+       
         try {
+
+            const idToken = await user.getIdToken(); // Now this is safe to call
             const bookingData = {
                 guestInfo: guests,
                 hotelOfferId: bookingOfferId,
@@ -73,12 +97,14 @@ function HotelBookingForm() {
                 }
             };
 
-            const response = await fetch('/api/hotels/book', {
+const response = await fetch('/api/hotels/book', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${idToken}` // Token is guaranteed to be here
+                },
                 body: JSON.stringify(bookingData),
-            });
-
+});
             const data = await response.json();
 
             if (response.ok && data.success) {
@@ -133,9 +159,13 @@ function HotelBookingForm() {
                             </div>
                         </div>
 
-                        <button type="submit" className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-4 rounded-lg font-semibold hover:from-blue-600 hover:to-cyan-600 transition-colors disabled:opacity-50 mt-6" disabled={loading}>
-                            {loading ? 'Confirming Booking...' : 'Confirm Booking'}
-                        </button>
+                        <button 
+                        type="submit" 
+                        className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-4 rounded-lg font-semibold hover:from-blue-600 hover:to-cyan-600 transition-colors disabled:opacity-50 mt-6" 
+                        disabled={authLoading || loading || !user} // <-- Updated disabled check
+                    >
+                        {authLoading ? 'Authenticating...' : (loading ? 'Confirming Booking...' : 'Confirm Booking')}
+                    </button>
                     </form>
                 </div>
             </div>

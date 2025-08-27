@@ -2,7 +2,8 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import NavigationBar from '@/components/NavigationBar';
-
+import {auth,db} from '@/lib/firebaseClient';
+import { getAuth } from 'firebase/auth';
 // --- Icon Components ---
 const UserIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>;
 const CheckCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
@@ -63,47 +64,54 @@ function BookingForm() {
         setTravelers(updatedTravelers);
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError('');
-        setBookingResult(null);
-        
-        try {
-            // Step 1: Re-price the flight offer
-            const priceResponse = await fetch('/api/flights/price', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ flightOffer: initialFlightOffer }),
-            });
+const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setBookingResult(null);
 
-            const freshFlightOffer = await priceResponse.json();
+    try {
+        // 🔑 Get Firebase ID token of the logged-in user
+        const auth = getAuth();
+        const currentUser = auth.currentUser;
+        const idToken = currentUser ? await currentUser.getIdToken() : null;
 
-            if (!priceResponse.ok) {
-                const errorDetail = freshFlightOffer.errors?.map(err => err.detail).join(', ') || 'Failed to confirm flight price.';
-                throw new Error(errorDetail);
-            }
+        // Step 1: Re-price the flight offer
+        const priceResponse = await fetch('/api/flights/price', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ flightOffer: initialFlightOffer }),
+        });
 
-            // Step 2: Use the fresh flight offer for booking
-            const bookResponse = await fetch('/api/flights/book', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ flightOffer: freshFlightOffer, travelers }),
-            });
-            
-            const data = await bookResponse.json();
-            if (bookResponse.ok) {
-                setBookingResult(data);
-            } else {
-                const errorMessage = data.errors?.map(err => `${err.title}: ${err.detail}`).join(', ') || 'Booking failed.';
-                setError(errorMessage);
-            }
-        } catch (err) {
-            setError(err.message || 'An unexpected error occurred.');
-        } finally {
-            setLoading(false);
+        const freshFlightOffer = await priceResponse.json();
+        if (!priceResponse.ok) {
+            const errorDetail = freshFlightOffer.errors?.map(err => err.detail).join(', ') || 'Failed to confirm flight price.';
+            throw new Error(errorDetail);
         }
-    };
+
+        // Step 2: Use the fresh flight offer for booking
+        const bookResponse = await fetch('/api/flights/book', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}) // attach token if exists
+            },
+            body: JSON.stringify({ flightOffer: freshFlightOffer, travelers }),
+        });
+
+        const data = await bookResponse.json();
+        if (bookResponse.ok) {
+            setBookingResult(data);
+        } else {
+            const errorMessage = data.errors?.map(err => `${err.title}: ${err.detail}`).join(', ') || 'Booking failed.';
+            setError(errorMessage);
+        }
+    } catch (err) {
+        setError(err.message || 'An unexpected error occurred.');
+    } finally {
+        setLoading(false);
+    }
+};
 
     if (bookingResult) {
         return <FlightBookingConfirmationPage bookingData={bookingResult} />;

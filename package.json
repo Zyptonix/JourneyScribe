@@ -17,6 +17,7 @@
     "node-fetch": "^3.3.2",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "react-firebase-hooks": "^5.1.1",
     "react-image-crop": "^11.0.10"
   },
   "devDependencies": {

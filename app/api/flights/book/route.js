@@ -1,7 +1,22 @@
 import { getAmadeusAccessToken } from '@/lib/amadeusToken';
+import { db, adminAuth } from '@/lib/firebaseAdmin';
+
+
 
 export async function POST(request) {
     try {
+        const authHeader = request.headers.get('authorization');
+        let uid = null;
+
+        if (authHeader?.startsWith("Bearer ")) {
+            const idToken = authHeader.split("Bearer ")[1];
+            try {
+                const decoded = await adminAuth.verifyIdToken(idToken);
+                uid = decoded.uid;
+            } catch (err) {
+                console.error("Token verification failed:", err);
+            }
+        }
         const body = await request.json();
         const { flightOffer, travelers } = body;
 
@@ -66,20 +81,50 @@ export async function POST(request) {
 
         const bookingData = await bookingResponse.json();
 
-        if (!bookingResponse.ok) {
-            console.error("Amadeus Booking Error:", bookingData);
-            console.error("Payload Sent:", JSON.stringify(payload, null, 2));
-            
-            return new Response(JSON.stringify({ error: bookingData.errors || 'Failed to create flight order.' }), {
-                status: bookingResponse.status,
-                headers: { 'Content-Type': 'application/json' },
-            });
-        }
+if (!bookingResponse.ok) {
+    console.error("Amadeus Booking Error:", bookingData);
+    console.error("Payload Sent:", JSON.stringify(payload, null, 2));
+    
+    return new Response(JSON.stringify({ error: bookingData.errors || 'Failed to create flight order.' }), {
+        status: bookingResponse.status,
+        headers: { 'Content-Type': 'application/json' },
+    });
+}
 
-        return new Response(JSON.stringify(bookingData), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
+// ✅ Save structured booking to Firestore
+// ✅ Save structured booking to Firestore
+try {
+    if (uid) {
+        await db.collection("userProfiles")
+            .doc(uid)
+            .collection("bookings")
+            .add({
+                reference: bookingData?.data?.associatedRecords?.[0]?.reference || null,
+                travelers: bookingData?.data?.travelers || [],
+                flightOffers: bookingData?.data?.flightOffers || [],
+                raw: bookingData,
+                createdAt: new Date(),
+            });
+    } else {
+        // fallback if no uid (anonymous booking, unlikely but safe)
+        await db.collection("flightBookings").add({
+            reference: bookingData?.data?.associatedRecords?.[0]?.reference || null,
+            travelers: bookingData?.data?.travelers || [],
+            flightOffers: bookingData?.data?.flightOffers || [],
+            raw: bookingData,
+            createdAt: new Date(),
         });
+    }
+} catch (firestoreErr) {
+    console.error("Firestore Save Error:", firestoreErr);
+}
+
+
+return new Response(JSON.stringify(bookingData), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+});
+
 
     } catch (err) {
         console.error('Booking API Route Error:', err.message);
