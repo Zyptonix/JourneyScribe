@@ -5,6 +5,7 @@ import { auth, db } from '../lib/firebaseClient'; // Your specified import path
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import Link from 'next/link'; // Import Next.js Link component
+import NotificationsDropdown from './NotificationsDropdown';
 
 export default function NavigationBarDark() {
     const [showUserDropdown, setShowUserDropdown] = useState(false);
@@ -156,13 +157,15 @@ export default function NavigationBarDark() {
                                         <Link href="/hotel/search" className="block px-4 py-2 text-slate-200 hover:bg-blue-500 hover:text-white transition-colors">Hotels</Link>
                                         <Link href="/bookings" className="block px-4 py-2 text-slate-200 hover:bg-blue-500 hover:text-white transition-colors">Confirmations</Link>
                                     </div>
+                                    
                                 </div>
                             )}
                         </div>
-                        <NotificationsDropdown /> {/* 3. ADD the new component here */}
+                        
 
                         <Link href="/blog" className="text-slate-200 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Blogs</Link>
                         <Link href="/chat" className="text-slate-200 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Chat</Link>
+                            <NotificationsDropdown /> {/* 3. ADD the new component here */}
                     </div>
 
                     {/* Conditional User information / Sign In button */}
