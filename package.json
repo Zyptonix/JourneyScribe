@@ -1,9 +1,9 @@
 {
-  "name": "journeyscribejs",
+  "name": "journeyscribe",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "cross-env PORT=9243 next dev",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -17,6 +17,7 @@
     "node-fetch": "^3.3.2",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "react-firebase-hooks": "^5.1.1",
     "react-image-crop": "^11.0.10"
   },
   "devDependencies": {

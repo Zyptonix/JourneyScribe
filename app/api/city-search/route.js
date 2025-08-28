@@ -1,16 +1,18 @@
-// app/api/city-search/route.js (for Next.js App Router)
-// or pages/api/city-search.js (for Next.js Pages Router)
 
-import fetch from 'node-fetch';
 import { getAmadeusAccessToken } from '@/lib/amadeusToken'; // Adjust path as needed
-import { fetchWithBackoff } from '@/utils/fetchWithBackoff'; // Import the new utility
 
 export async function GET(request) {
     const { searchParams } = new URL(request.url);
-    const keyword = searchParams.get('keyword');
+    
+    // FIX: Explicitly convert the keyword to a string to ensure correct type.
+    // This handles cases where the parameter might be null or have an unexpected type.
+    const keyword = String(searchParams.get('keyword') || '');
 
-    if (!keyword || keyword.length < 2) { // Require at least 2 characters for search
-        return new Response(JSON.stringify([]), { // Return empty array for short keywords
+    // The existing check for keyword length is still useful.
+    if (keyword.length < 2) {
+        return new Response(JSON.stringify([]), {
+
+
             status: 200,
             headers: { 'Content-Type': 'application/json' }
         });
@@ -18,12 +20,10 @@ export async function GET(request) {
 
     try {
         const token = await getAmadeusAccessToken();
-
-        // Use Amadeus City Search API (Airport & City Search API)
         const citySearchUrl = new URL('https://test.api.amadeus.com/v1/reference-data/locations/cities');
         citySearchUrl.searchParams.set('keyword', keyword);
         
-        // Use fetchWithBackoff for the Amadeus API call
+
         const response = await fetch(citySearchUrl.toString(), {
             headers: { Authorization: `Bearer ${token}` }
         });
@@ -32,13 +32,17 @@ export async function GET(request) {
 
         if (!response.ok) {
             console.error("Amadeus City Search API Error:", data);
-            return new Response(JSON.stringify({ error: data.errors?.[0]?.detail || 'Failed to fetch city suggestions' }), {
+
+            // The error message you are seeing likely comes from here.
+            const errorMessage = data.errors?.[0]?.detail || 'Failed to fetch city suggestions';
+            return new Response(JSON.stringify({ error: errorMessage }), {
+
                 status: response.status,
                 headers: { 'Content-Type': 'application/json' }
             });
         }
 
-        // Simplify and return only relevant city info for suggestions
+
         const cities = (data.data || []).map(city => ({
             name: city.name,
             iataCode: city.iataCode
