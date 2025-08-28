@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import NavigationBar from '@/components/NavigationBar';
 import CitySearchLight from '@/components/CitySearchLight';
@@ -46,6 +46,7 @@ export default function FlightSearchPage() {
     const selectStyles = "bg-white/80 text-black p-3 border border-slate-300 rounded-lg w-full";
 
     return (
+        <Suspense>
         <div className="min-h-screen font-inter flex flex-col">
             <div className="fixed inset-0 -z-10 h-full w-full bg-cover bg-center" style={{ backgroundImage: "url('/assets/flight.jpg')" }}></div>
             <div className='bg-black/20 fixed inset-0 -z-10'></div>
@@ -99,5 +100,6 @@ export default function FlightSearchPage() {
                 </div>
             </div>
         </div>
+        </Suspense>
     );
 }

@@ -1,26 +1,71 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+
 import NavigationBarDark from '@/components/NavigationBarDark';
 
 // --- Icon Components ---
-const HotelIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m-1 4h1m5-4h1m-1 4h1m-1-4h1m-1 4h1" /></svg>;
+const HotelIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m-1 4h1m5-4h1m-1 4h1m-1-4h1" /></svg>;
 const BedIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" /></svg>;
 const UsersIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>;
 
-// --- Main Page Component ---
-export default function HotelListPage() {
+// --- Loader for Suspense Fallback ---
+const HotelListLoader = () => (
+    <div className="min-h-screen font-inter">
+        <div className="fixed inset-0 -z-10 bg-cover bg-center" style={{ backgroundImage: "url('/assets/hotellist.jpg')" }}></div>
+        <div className="fixed inset-0 -z-10 bg-black/40"></div>
+        <NavigationBarDark />
+        <div className="p-4 md:p-8">
+            <div className="max-w-7xl mx-auto">
+                <div className="bg-black/20 backdrop-blur-md rounded-xl shadow-lg p-6 mb-8 border border-white/20">
+                    <div className="animate-pulse flex flex-col space-y-3">
+                        <div className="h-8 bg-slate-500/50 rounded w-1/3"></div>
+                        <div className="h-4 bg-slate-500/50 rounded w-1/2"></div>
+                    </div>
+                </div>
+                <div className="flex flex-col items-center justify-center h-64">
+                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-cyan-500 mb-4"></div>
+                    <p className="text-slate-100 font-semibold">Searching for hotels...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+);
+
+
+// --- Component with the main page logic ---
+function HotelList() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [hotelList, setHotelList] = useState([]);
     const [expandedHotelId, setExpandedHotelId] = useState(null);
-    // --- FIX: Use the passed cityName, with a fallback to the cityCode ---
     const [cityName, setCityName] = useState(searchParams.get('cityName') || searchParams.get('cityCode'));
 
     useEffect(() => {
         const cityCode = searchParams.get('cityCode');
+        const handleFetchHotelList = async () => {
+            setLoading(true);
+            setError('');
+            setHotelList([]);
+            try {
+                const queryParams = new URLSearchParams(searchParams).toString();
+                const response = await fetch(`/api/hotels/list?${queryParams}`);
+                const data = await response.json();
+                if (response.ok) {
+                    setHotelList(data);
+                    if (data.length === 0) setError(`No hotels found matching your criteria.`);
+                } else {
+                    setError(data.error || 'Failed to fetch the hotel list.');
+                }
+            } catch (err) {
+                setError(`A network error occurred: ${err.message}`);
+            } finally {
+                setLoading(false);
+            }
+        };
+
         if (cityCode) {
             handleFetchHotelList();
         } else {
@@ -28,27 +73,6 @@ export default function HotelListPage() {
             setLoading(false);
         }
     }, [searchParams]);
-
-    const handleFetchHotelList = async () => {
-        setLoading(true);
-        setError('');
-        setHotelList([]);
-        try {
-            const queryParams = new URLSearchParams(searchParams).toString();
-            const response = await fetch(`/api/hotels/list?${queryParams}`);
-            const data = await response.json();
-            if (response.ok) {
-                setHotelList(data);
-                if (data.length === 0) setError(`No hotels found matching your criteria.`);
-            } else {
-                setError(data.error || 'Failed to fetch the hotel list.');
-            }
-        } catch (err) {
-            setError(`A network error occurred: ${err.message}`);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     return (
         <div className="min-h-screen font-inter">
@@ -84,6 +108,15 @@ export default function HotelListPage() {
     );
 }
 
+// --- Main Page Export (Provides the Suspense Boundary) ---
+export default function HotelListPage() {
+    return (
+        <Suspense fallback={<HotelListLoader />}>
+            <HotelList />
+        </Suspense>
+    );
+}
+
 // --- Hotel Card Component ---
 function HotelCard({ hotel, searchParams, isExpanded, onExpand }) {
     const router = useRouter();
@@ -111,8 +144,13 @@ function HotelCard({ hotel, searchParams, isExpanded, onExpand }) {
     };
     
     const handleInitiateBooking = (offerId) => {
-        const cityName = searchParams.get('cityName') || hotel.address?.cityName;
-        router.push(`/hotel/book?offerId=${offerId}&hotelName=${encodeURIComponent(hotel.name)}&cityName=${encodeURIComponent(cityName)}`);
+        // Construct the query for the booking page
+        const query = new URLSearchParams({
+            offerId: offerId,
+            hotelName: hotel.name,
+            adults: searchParams.get('adults') || '1', // Pass adults count
+        }).toString();
+        router.push(`/hotel/book?${query}`);
     };
 
     const renderButton = () => {

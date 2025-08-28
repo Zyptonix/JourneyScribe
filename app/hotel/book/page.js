@@ -1,8 +1,9 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import NavigationBarDark from '@/components/NavigationBarDark';
-
+import { auth,db } from '@/lib/firebaseClient';
+import { onAuthStateChanged } from 'firebase/auth';
 // --- Icon Components ---
 const UserIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>;
 const MailIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>;
@@ -10,23 +11,48 @@ const PhoneIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w
 const CreditCardIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>;
 const CheckCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
 
-export default function HotelBookingPage() {
+
+// --- A loading component to use as the Suspense fallback ---
+const BookingLoader = () => (
+    <div className="min-h-screen font-inter flex items-center justify-center">
+        <div className="fixed inset-0 -z-10 bg-gradient-to-br from-cyan-900 via-blue-900 to-black"></div>
+        <div className="text-center p-8 bg-black/20 backdrop-blur-xl rounded-xl">
+            <h1 className="text-2xl font-bold text-white">Loading Your Booking...</h1>
+        </div>
+    </div>
+);
+
+
+// --- This new component holds all the logic and uses the search params ---
+function HotelBookingForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
-
     const bookingOfferId = searchParams.get('offerId');
     const bookingHotelName = searchParams.get('hotelName');
     const adults = parseInt(searchParams.get('adults') || '1', 10);
-
+    // --- STATES ---
+    const [user, setUser] = useState(null);
+    const [authLoading, setAuthLoading] = useState(true);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [bookingResult, setBookingResult] = useState(null);
-
     const [guests, setGuests] = useState([]);
+    // VVV ADD THESE PAYMENT STATES VVV
     const [cardVendor, setCardVendor] = useState('VI');
     const [cardNumber, setCardNumber] = useState('4111111111111111');
     const [expiryDate, setExpiryDate] = useState('2030-12');
     const [cardHolderName, setCardHolderName] = useState('JOHN SMITH');
+
+    // --- EFFECTS ---
+    useEffect(() => {
+        // 2. Listen for authentication state changes
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            setUser(currentUser); // Set user to null if not logged in, or the user object if they are
+            setAuthLoading(false); // We're done checking for a user
+        });
+
+        // Cleanup subscription on unmount
+        return () => unsubscribe();
+    }, []);
 
     useEffect(() => {
         if (!bookingOfferId || !bookingHotelName) {
@@ -47,8 +73,21 @@ export default function HotelBookingPage() {
         e.preventDefault();
         setLoading(true);
         setError('');
-        
+       if (!user) {
+            setError("You must be signed in to make a booking.");
+            setLoading(false);
+            return;
+        }
+
+     
+            
+            
+          
+            
+       
         try {
+
+            const idToken = await user.getIdToken(); // Now this is safe to call
             const bookingData = {
                 guestInfo: guests,
                 hotelOfferId: bookingOfferId,
@@ -58,15 +97,14 @@ export default function HotelBookingPage() {
                 }
             };
 
-            // --- FIX: Added console.log for debugging ---
-            console.log("Submitting the following data to /api/hotels/book:", JSON.stringify(bookingData, null, 2));
-
-            const response = await fetch('/api/hotels/book', {
+const response = await fetch('/api/hotels/book', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${idToken}` // Token is guaranteed to be here
+                },
                 body: JSON.stringify(bookingData),
-            });
-
+});
             const data = await response.json();
 
             if (response.ok && data.success) {
@@ -83,10 +121,6 @@ export default function HotelBookingPage() {
     };
     
     const inputStyles = "bg-white/10 text-white placeholder-slate-300 p-3 pl-10 border border-white/20 rounded-lg w-full shadow-[inset_0_0_0_1000px_rgba(0,0,0,0.2)] focus:ring-cyan-400 focus:border-cyan-400";
-
-    if (bookingResult) {
-        return <HotelBookingConfirmationPage bookingData={bookingResult} />;
-    }
 
     return (
         <div className="min-h-screen font-inter">
@@ -125,9 +159,13 @@ export default function HotelBookingPage() {
                             </div>
                         </div>
 
-                        <button type="submit" className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-4 rounded-lg font-semibold hover:from-blue-600 hover:to-cyan-600 transition-colors disabled:opacity-50 mt-6" disabled={loading}>
-                            {loading ? 'Confirming Booking...' : 'Confirm Booking'}
-                        </button>
+                        <button 
+                        type="submit" 
+                        className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-4 rounded-lg font-semibold hover:from-blue-600 hover:to-cyan-600 transition-colors disabled:opacity-50 mt-6" 
+                        disabled={authLoading || loading || !user} // <-- Updated disabled check
+                    >
+                        {authLoading ? 'Authenticating...' : (loading ? 'Confirming Booking...' : 'Confirm Booking')}
+                    </button>
                     </form>
                 </div>
             </div>
@@ -135,9 +173,13 @@ export default function HotelBookingPage() {
     );
 }
 
-// --- Confirmation Page Component ---
-// This component remains on a separate page: app/hotel/confirmation/page.js
-// No changes are needed here.
-function HotelBookingConfirmationPage({ bookingData }) {
-    // ...
+// --- Main Page Export ---
+// This is the actual component for the page route. It provides the
+// Suspense boundary that wraps the component using the dynamic hooks.
+export default function HotelBookingPage() {
+    return (
+        <Suspense fallback={<BookingLoader />}>
+            <HotelBookingForm />
+        </Suspense>
+    );
 }

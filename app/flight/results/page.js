@@ -1,9 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import NavigationBarDark from '@/components/NavigationBarDark'; // Switched to dark nav bar
-import NavigationBarLight from '@/components/NavigationBarLight';
 import NavigationBar from '@/components/NavigationBar';
 
 // --- Helper Functions & Icons ---
@@ -11,8 +9,30 @@ const formatTime = (dateTime) => new Date(dateTime).toLocaleTimeString('en-GB', 
 const formatDuration = (duration) => duration.replace('PT', '').replace('H', 'h ').replace('M', 'm');
 const PlaneTakeoffIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline-block text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2h1a2 2 0 002-2v-1a2 2 0 012-2h1.945M7.8 9.925l.416-.555a1.125 1.125 0 011.569 0l.416.555m3.113 0l.416-.555a1.125 1.125 0 011.569 0l.416.555m0 0l3.113-4.15a.75.75 0 011.16.886l-3.323 4.43z" /></svg>;
 
-// --- Main Component ---
-export default function FlightResultsPage() {
+// --- Loading component for Suspense fallback ---
+const ResultsLoader = () => (
+    <div className="min-h-screen font-inter">
+        <div className="fixed inset-0 -z-10 bg-cover bg-center" style={{ backgroundImage: "url('/assets/flightresults.jpg')" }}></div>
+        <div className="fixed inset-0 -z-10 bg-black/10"></div>
+        <NavigationBar/>
+        <div className='p-4 md:p-8'>
+            <div className="max-w-5xl mx-auto">
+                <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-8 border border-white/20">
+                    <div className="animate-pulse flex flex-col space-y-3">
+                        <div className="h-8 bg-slate-200 rounded w-3/4"></div>
+                        <div className="h-4 bg-slate-200 rounded w-1/2"></div>
+                    </div>
+                </div>
+                <div className="flex justify-center items-center h-64">
+                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-cyan-500"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+);
+
+// --- Component containing the page logic, which uses searchParams ---
+function FlightResults() {
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -87,7 +107,19 @@ export default function FlightResultsPage() {
     );
 }
 
-// --- Boarding Pass Style Card Component ---
+// --- Main Page Export ---
+// This is the actual page route. It wraps the logic component in Suspense.
+export default function FlightResultsPage() {
+    return (
+        <Suspense fallback={<ResultsLoader />}>
+            <FlightResults />
+        </Suspense>
+    );
+}
+
+
+// --- Sub-components (No changes needed here) ---
+
 function FlightOfferCard({ offer }) {
     const router = useRouter();
     const { price, itineraries } = offer;
@@ -98,13 +130,11 @@ function FlightOfferCard({ offer }) {
 
     return (
         <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row">
-            {/* Main Ticket Body */}
             <div className="flex-grow p-6">
                 {itineraries?.map((itinerary, index) => (
                     <ItineraryDetails key={index} itinerary={itinerary} isReturn={index > 0} />
                 ))}
             </div>
-            {/* Tear-off Stub */}
             <div className="bg-slate-50 border-t-2 border-dashed border-slate-300 md:border-t-0 md:border-l-2 p-6 w-full md:w-64 flex flex-col justify-center items-center text-center">
                 <div>
                     <p className="text-sm text-slate-500">Total Price</p>
