@@ -1,44 +1,56 @@
-// app/api/packing/route.js
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 
-// Example weather-based rules
-const clothingRules = (weather, activities) => {
-  let essentials = [];
-
-  // Weather logic
-  if (weather.includes("rain")) essentials.push("Umbrella, Waterproof jacket");
-  if (weather.includes("snow")) essentials.push("Warm coat, Gloves, Boots");
-  if (weather.includes("sunny")) essentials.push("Sunglasses, Hat, Sunscreen");
-
-  // Activity logic
-  if (activities.includes("hiking")) essentials.push("Hiking boots, Water bottle, Backpack");
-  if (activities.includes("swimming")) essentials.push("Swimsuit, Towel, Flip-flops");
-  if (activities.includes("formal")) essentials.push("Formal wear, Dress shoes");
-
-  if (essentials.length === 0) essentials.push("Casual clothes, Essentials bag");
-
-  return essentials;
-};
-
-export async function POST(req) {
+export async function POST(request) {
   try {
-    const { destination, weather, activities } = await req.json();
+    // Read the simplified data from the request
+    const { destination, weather, activities } = await request.json();
 
     if (!destination || !weather) {
-      return NextResponse.json({ success: false, message: "Missing inputs" }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: 'Missing destination or weather.' },
+        { status: 400 }
+      );
+    }
+    
+    // The recommendation logic is now based on the user-selected weather
+    let recommendations = [
+      "Passport/ID", "Tickets/Boarding Pass", "Phone & Charger", "Wallet (Cash/Cards)", "Toothbrush & Toothpaste", "Basic Toiletries",
+    ];
+
+    switch (weather) {
+      case "Sunny":
+        recommendations.push("Sunscreen", "Sunglasses", "Hat", "Shorts", "T-shirts");
+        break;
+      case "Rain":
+        recommendations.push("Umbrella", "Raincoat", "Waterproof shoes");
+        break;
+      case "Snow":
+        recommendations.push("Winter coat", "Gloves", "Scarf", "Beanie", "Snow boots");
+        break;
+      case "Cloudy":
+        recommendations.push("Light jacket", "Sweater", "Jeans");
+        break;
     }
 
-    // Generate recommendations
-    const essentials = clothingRules(weather.toLowerCase(), activities || []);
+    if (activities.includes("hiking")) {
+      recommendations.push("Hiking boots", "Backpack", "Water bottle");
+    }
+    if (activities.includes("swimming")) {
+      recommendations.push("Swimsuit", "Towel", "Flip-flops");
+    }
+    if (activities.includes("business") || activities.includes("formal")) {
+      recommendations.push("Formal wear", "Dress shoes");
+    }
+    
+    const uniqueRecommendations = [...new Set(recommendations)];
 
-    return NextResponse.json({
-      success: true,
-      destination,
-      weather,
-      activities,
-      recommendations: essentials,
-    });
+    return NextResponse.json({ success: true, recommendations: uniqueRecommendations });
+
   } catch (error) {
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    console.error(error);
+    return NextResponse.json(
+      { success: false, error: 'An internal server error occurred.' },
+      { status: 500 }
+    );
   }
 }
