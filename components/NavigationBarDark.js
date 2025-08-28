@@ -165,6 +165,8 @@ export default function NavigationBarDark() {
                         <Link href="/hotel/search" className="text-slate-200 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Hotel</Link>
                         <Link href="/blog" className="text-slate-200 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Blogs</Link>
                         <Link href="/chat" className="text-slate-200 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Chat</Link>
+                        {/*<Link href="/trip-documents" className="text-slate-200 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Trip Documents</Link>
+                        <Link href="/itinerary" className="text-slate-200 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Itinerary</Link>*/}
                     </div>
 
 

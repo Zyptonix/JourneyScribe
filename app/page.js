@@ -6,7 +6,6 @@ import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth'; // Import 
 import { getFirestore, doc, getDoc } from 'firebase/firestore'; // Import Firestore functions
 import NavigationBar from '@/components/NavigationBar';
 
-
 export default function HomePage() {
   const [currentUser, setCurrentUser] = useState(null);
   const [username, setUsername] = useState('Guest'); // Default to Guest
@@ -78,7 +77,7 @@ export default function HomePage() {
 
       {/* Overlay to darken and make content readable over the top background, now FIXED */}
       <div className="fixed inset-x-0 top-0 h-[80vh] bg-black opacity-5 "></div>
-              {/* Render the NavigationBar component */}
+          {/* Render the NavigationBar component */}
       <NavigationBar />
       
 
@@ -96,7 +95,7 @@ export default function HomePage() {
             JourneyScribe is your ultimate travel companion, helping you discover, plan, and share your adventures seamlessly. From personalized itineraries to real-time bookings, your perfect trip starts here.
           </p>
           {!loadingAuth && !currentUser && (
-          <a href="/auth/signup" className="inline-block px-8 py-4 rounded-full bg-blue-500 text-white text-lg font-semibold shadow-lg hover:bg-cyan-600 transition-colors duration-300 ease-in-out">
+          <a href="/auth/signup" className="inline-block px-8 py-4 rounded-full bg-cyan-500 text-white text-lg font-semibold shadow-lg hover:bg-cyan-600 transition-colors duration-300 ease-in-out">
             Start Your Journey Today!
           </a>)}
           {currentUser && (
@@ -127,12 +126,12 @@ export default function HomePage() {
             </div>
             <div className="md:w-1/2 flex justify-center items-center">
               <div className="w-full max-lg h-48 md:h-100 rounded-lg flex items-center justify-center overflow-hidden">
-                 <img
-                   src="/assets/essentials.svg"
-                   alt="Trip Essentials"
-                   className="w-full h-full object-contain p-4"
-                   onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/400x400/64748b/ffffff?text=Image+Error"; }}
-                 />
+                   <img
+                    src="/assets/essentials.svg"
+                    alt="Trip Essentials"
+                    className="w-full h-full object-contain p-4"
+                    onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/400x400/64748b/ffffff?text=Image+Error"; }}
+                   />
               </div>
             </div>
           </div>
@@ -146,17 +145,23 @@ export default function HomePage() {
               </p>
               <div className="flex justify-center md:justify-center gap-4">
                 <a href="#" className="px-6 py-3 rounded-lg bg-purple-500 text-white font-semibold hover:bg-purple-600 transition-colors">Find Destinations</a>
-                <a href="#" className="px-6 py-3 rounded-lg bg-pink-500 text-white font-semibold hover:bg-pink-600 transition-colors">Build Itinerary</a>
+                
+                {/* START OF THE CHANGE */}
+                <Link href="/itinerary" className="px-6 py-3 rounded-lg bg-pink-500 text-white font-semibold hover:bg-pink-600 transition-colors">
+                  Build Itinerary
+                </Link>
+                {/* END OF THE CHANGE */}
+
               </div>
             </div>
             <div className="md:w-1/2 flex justify-center items-center">
               <div className="w-full max-w-lg h-120 md:h-120 rounded-lg flex items-center justify-center overflow-hidden">
-                 <img
-                   src="/assets/trip-planning.svg"
-                   alt="Trip Planning"
-                   className="w-full h-full object-contain p-4"
-                   onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/400x400/64748b/ffffff?text=Image+Error"; }}
-                 />
+                   <img
+                    src="/assets/trip-planning.svg"
+                    alt="Trip Planning"
+                    className="w-full h-full object-contain p-4"
+                    onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/400x400/64748b/ffffff?text=Image+Error"; }}
+                   />
               </div>
             </div>
           </div>
@@ -169,8 +174,8 @@ export default function HomePage() {
                 Access near real-time flight options from Expedia and GoZayaan, with advanced sorting. Find and book your ideal hotel stay, comparing prices and amenities to ensure the best fit for your journey.
               </p>
               <div className="flex justify-center md:justify-center gap-4">
-                <a href="/flight/search" className="px-6 py-3 rounded-lg bg-indigo-500 text-white font-semibold hover:bg-indigo-600 transition-colors">Find Flights</a>
-                <a href="/hotel/search" className="px-6 py-3 rounded-lg bg-sky-500 text-white font-semibold hover:bg-sky-600 transition-colors">Book Hotels</a>
+                <a href="#" className="px-6 py-3 rounded-lg bg-indigo-500 text-white font-semibold hover:bg-indigo-600 transition-colors">Find Flights</a>
+                <a href="#" className="px-6 py-3 rounded-lg bg-sky-500 text-white font-semibold hover:bg-sky-600 transition-colors">Book Hotels</a>
               </div>
             </div>
             <div className="md:w-1/2 flex justify-center items-center">
@@ -193,18 +198,18 @@ export default function HomePage() {
                 Share your travel stories and experiences on your personal blog. Engage with other travelers through comments and in-app chat, filtered by locations to find like-minded explorers.
               </p>
               <div className="flex justify-center md:justify-center gap-4">
-                <a href="/blog" className="px-6 py-3 rounded-lg bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors">Start Blogging</a>
-                <a href="/chat" className="px-6 py-3 rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors">Join Chats</a>
+                <a href="#" className="px-6 py-3 rounded-lg bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors">Start Blogging</a>
+                <a href="#" className="px-6 py-3 rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors">Join Chats</a>
               </div>
             </div>
             <div className="md:w-1/2 flex justify-center items-center">
               <div className="w-full max-w-lg h-48 md:h-100 rounded-lg flex items-center justify-center overflow-hidden">
-                 <img
-                   src="/assets/connection.svg"
-                   alt="Connection and Chat"
-                   className="w-full h-full object-contain p-4"
-                   onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/400x400/64748b/ffffff?text=Image+Error"; }}
-                 />
+                   <img
+                    src="/assets/connection.svg"
+                    alt="Connection and Chat"
+                    className="w-full h-full object-contain p-4"
+                    onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/400x400/64748b/ffffff?text=Image+Error"; }}
+                   />
               </div>
             </div>
           </div>
@@ -217,8 +222,8 @@ export default function HomePage() {
                 Securely create and manage your account with email/password or social logins. View and edit your profile, set travel preferences, and receive smart notifications tailored just for you. Admins get powerful tools for user and content management.
               </p>
               <div className="flex justify-center md:justify-center gap-4">
-                <a href="/Profilepage" className="px-6 py-3 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors">Manage Profile</a>
-                <a href="/notifications" className="px-6 py-3 rounded-lg bg-indigo-500 text-white font-semibold hover:bg-indigo-600 transition-colors">My Notifications</a>
+                <a href="#" className="px-6 py-3 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors">Manage Profile</a>
+                <a href="#" className="px-6 py-3 rounded-lg bg-indigo-500 text-white font-semibold hover:bg-indigo-600 transition-colors">My Notifications</a>
               </div>
             </div>
             <div className="md:w-1/2 flex justify-center items-center">

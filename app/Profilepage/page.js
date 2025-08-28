@@ -3,20 +3,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { auth, db } from '@/lib/firebaseClient';
 import { onAuthStateChanged, updateProfile } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import Link from 'next/link';
-import NavigationBar from '@/components/NavigationBar';
+import NavigationBarLight from '@/components/NavigationBarLight';
 
 // Import react-image-crop and its styles
 import ReactCrop, {
   Crop,
-  PixelCrop,
   centerCrop,
-  getImageDimensions
 } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
-import NavigationBarLight from '@/components/NavigationBarLight';
-import NavigationBarDark from '@/components/NavigationBarDark';
 
 // Utility function to get the cropped image as a Blob
 const getCroppedImage = (image, crop) => {
@@ -50,17 +46,11 @@ const getCroppedImage = (image, crop) => {
   });
 };
 
-// Fancy button component with gradient and animation
-const GradientButton = ({ onClick, children, disabled, className }) => (
-  <button
-    onClick={onClick}
-    disabled={disabled}
-    className={`relative inline-flex items-center justify-center p-0.5 mb-2 me-2 overflow-hidden text-sm font-medium text-gray-900 rounded-full group bg-gradient-to-br from-[#6700a3] to-[#ff5a57] group-hover:from-[#6700a3] group-hover:to-[#ff5a57] hover:text-white dark:text-white focus:ring-4 focus:outline-none focus:ring-purple-200 dark:focus:ring-purple-800 transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-95 ${className}`}
-  >
-    <span className="relative px-5 py-2.5 transition-all ease-in duration-75 bg-white dark:bg-gray-900 rounded-full group-hover:bg-opacity-0">
-      {children}
+// Component for displaying user preferences as tags
+const InfoTag = ({ children }) => (
+    <span className="bg-white/10 text-blue-200 text-xs font-semibold px-2.5 py-1 rounded-full border border-white/20">
+        {children}
     </span>
-  </button>
 );
 
 export default function UserProfilePage() {
@@ -83,7 +73,7 @@ export default function UserProfilePage() {
 
   // Image cropping states and refs
   const [crop, setCrop] = useState();
-  const [imageSrc, setImageSrc] = useState(null); // The image data URL to be cropped
+  const [imageSrc, setImageSrc] = useState(null);
   const imgRef = useRef(null);
   const [completedCrop, setCompletedCrop] = useState(null);
 
@@ -228,14 +218,12 @@ export default function UserProfilePage() {
         const newPhotoURL = data.data.url;
         setFormProfilePicture(newPhotoURL);
         
-        // --- KEY CHANGE: Update Firebase Auth user object directly ---
         if (currentFirebaseUser) {
             await updateProfile(currentFirebaseUser, {
                 photoURL: newPhotoURL
             });
             console.log("Firebase Auth user photoURL updated.");
         }
-        // -----------------------------------------------------------------
 
         setImageUploadSuccess(true);
         setImageSrc(null);
@@ -338,214 +326,193 @@ export default function UserProfilePage() {
       setFormProfilePicture(currentFirebaseUser?.photoURL || '');
     }
   };
+  
+  const renderLoadingOrError = (message) => (
+    <div className="min-h-screen font-inter flex flex-col items-center justify-center pt-20 relative z-10 p-4">
+        <div className="w-full max-w-md bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/20 shadow-2xl text-center">
+            <p className="text-xl text-white">{message}</p>
+        </div>
+    </div>
+  );
 
-  if (!isAuthReady) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
-        <p className="text-xl">Initializing authentication...</p>
-      </div>
-    );
+  if (!isAuthReady || (loading && !profileData)) {
+    return renderLoadingOrError("Loading Profile...");
+  }
+  
+  if (error) {
+     return renderLoadingOrError(error);
   }
 
   if (!currentFirebaseUser) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 p-4">
-        <p className="text-xl text-white mb-6">You must be logged in to view your profile.</p>
-        <Link href="/auth/login" passHref>
-          <GradientButton>
-            Go to Login Page
-          </GradientButton>
-        </Link>
-      </div>
-    );
-  }
-
-  if (loading && !profileData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white">
-        <p className="text-xl">Loading profile...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 p-4 text-white">
-        <p className="text-xl text-red-400 mb-4">Error: {error}</p>
-        <button onClick={() => fetchUserProfile(currentFirebaseUser.uid)} className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-full hover:scale-105 transition-transform">
-          Retry
-        </button>
-      </div>
+        <div className="min-h-screen font-inter flex flex-col items-center justify-center pt-20 relative z-10 p-4">
+            <div className="w-full max-w-md bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/20 shadow-2xl text-center">
+                <p className="text-xl text-white mb-6">You must be logged in to view your profile.</p>
+                <Link href="/auth/login" passHref>
+                    <button className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors">
+                        Go to Login
+                    </button>
+                </Link>
+            </div>
+        </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
-      <div className="fixed top-0 w-full z-50"><NavigationBarDark/></div>
-      <div className="pt-20 flex items-center justify-center p-4 sm:p-6 lg:p-8">
-        <div className="relative p-6 sm:p-8 w-full max-w-2xl mt-18 rounded-3xl backdrop-blur-md bg-white/10 border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] animate-fade-in">
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-[#e02f75] to-[#ff5a57]">
-            User Profile 🚀
-          </h1>
+    <>
+      <div className="fixed inset-0 blur -z-10 h-full w-full bg-cover bg-center" style={{ backgroundImage: "url('/assets/profilepage.jpg')" }}></div>
+      <div className="fixed inset-x-0 top-0 h-full bg-gradient-to-b from-white-300 to-blue-900 opacity-60 -z-10"></div>
+      <div className="fixed top-0 w-full z-50"><NavigationBarLight/></div>
 
-          <div className="flex flex-col items-center mb-6">
-            <img
-              src={formProfilePicture || profileData?.profilePicture || currentFirebaseUser?.photoURL || "https://placehold.co/100x100/1F2937/FFFFFF?text=User"}
-              alt="Profile"
-              className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-white/50 shadow-xl mb-3 transform transition-transform hover:scale-105 hover:shadow-2xl"
-              onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/100x100/1F2937/FFFFFF?text=User"; }}
-            />
-            <p className="text-xl font-semibold text-white">
-              {profileData?.fullName || profileData?.username || currentFirebaseUser?.displayName || 'N/A'}
-            </p>
-          </div>
-
+      <div className="min-h-screen font-inter flex flex-col items-center justify-center pt-28 pb-12 px-4 relative z-10">
+        <div className="w-full max-w-4xl">
           {!isEditing ? (
-            // View Mode
-            <div className="space-y-4 text-gray-300">
-              <div className="w-full h-px bg-gradient-to-r from-transparent via-[#ff5a57] to-transparent my-6"></div>
-              <p><span className="font-semibold text-white">Username:</span> {profileData?.username || 'N/A'}</p>
-              <p><span className="font-semibold text-white">Full Name:</span> {profileData?.fullName || 'N/A'}</p>
-              <p><span className="font-semibold text-white">Email:</span> {profileData?.email || currentFirebaseUser?.email || 'N/A'}</p>
-              <p><span className="font-semibold text-white">Travel Styles:</span> {Array.isArray(profileData?.travelStyles) && profileData.travelStyles.length > 0 ? profileData.travelStyles.join(', ') : 'N/A'}</p>
-              <p><span className="font-semibold text-white">Interests:</span> {Array.isArray(profileData?.interests) && profileData.interests.length > 0 ? profileData.interests.join(', ') : 'N/A'}</p>
-              <p><span className="font-semibold text-white">Budget Range:</span> {profileData?.budgetRange || 'N/A'}</p>
-              <p><span className="font-semibold text-white">Dietary Restrictions:</span> {Array.isArray(profileData?.dietaryRestrictions) && profileData.dietaryRestrictions.length > 0 ? profileData.dietaryRestrictions.join(', ') : 'N/A'}</p>
-              <p>
-                <span className="font-semibold text-white">Member Since:</span>{" "}
-                {profileData?.createdAt
-                  ? profileData.createdAt.toDate
-                    ? profileData.createdAt.toDate().toLocaleDateString(undefined, {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric"
-                      })
-                    : new Date(profileData.createdAt._seconds * 1000).toLocaleDateString(undefined, {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric"
-                      })
-                  : "N/A"}
-              </p>
+            // --- VIEW MODE ---
+            <div className="bg-black/50 backdrop-blur-md rounded-2xl p-8 border border-white/20 shadow-2xl">
+              <h1 className="text-3xl font-bold text-center text-white mb-2">JourneyScribe User Profile</h1>
+              <p className="text-center text-white/70 mb-8">These informations help personalize your travel experience.</p>
 
-              {profileData?.message && (
-                <p className="text-center text-gray-400 italic mt-4">{profileData.message}</p>
-              )}
+              <div className="flex flex-col md:flex-row items-center gap-8">
+                <div className="flex-shrink-0 text-center">
+                    <img
+                        src={formProfilePicture || profileData?.profilePicture || currentFirebaseUser?.photoURL || "https://placehold.co/150x150/1F2937/FFFFFF?text=User"}
+                        alt="Profile"
+                        className="w-36 h-36 rounded-full object-cover border-4 border-white/30 shadow-xl mx-auto"
+                        onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/150x150/1F2937/FFFFFF?text=User"; }}
+                    />
+                    <button onClick={() => setIsEditing(true)} className="mt-6 w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors">
+                        Edit Profile
+                    </button>
+                </div>
+                
+                <div className="w-full border-t-2 md:border-t-0 md:border-l-2 border-white/20 pt-6 md:pt-0 md:pl-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                        <div>
+                            <label className="text-sm text-white/60">Full Name</label>
+                            <p className="text-lg font-semibold text-white">{profileData?.fullName || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <label className="text-sm text-white/60">Username</label>
+                            <p className="text-lg font-semibold text-white">{profileData?.username || 'N/A'}</p>
+                        </div>
+                        <div className="col-span-2">
+                            <label className="text-sm text-white/60">Email</label>
+                            <p className="text-lg font-semibold text-white">{profileData?.email || currentFirebaseUser?.email || 'N/A'}</p>
+                        </div>
+                    </div>
+                    
+                    <hr className="border-white/20 my-6" />
 
-              <div className="text-center mt-6">
-                <GradientButton onClick={() => setIsEditing(true)}>
-                  Edit Profile
-                </GradientButton>
+                    <div>
+                        <h3 className="text-md font-semibold text-white mb-3">Travel Preferences</h3>
+                        <div className="space-y-3">
+                            <div className="flex flex-wrap gap-2 items-center">
+                                <strong className="text-sm text-white/80 w-28">Styles:</strong>
+                                {profileData?.travelStyles?.length > 0 ? profileData.travelStyles.map(s => <InfoTag key={s}>{s}</InfoTag>) : <InfoTag>Not set</InfoTag>}
+                            </div>
+                            <div className="flex flex-wrap gap-2 items-center">
+                                <strong className="text-sm text-white/80 w-28">Interests:</strong>
+                                {profileData?.interests?.length > 0 ? profileData.interests.map(i => <InfoTag key={i}>{i}</InfoTag>) : <InfoTag>Not set</InfoTag>}
+                            </div>
+                             <div className="flex flex-wrap gap-2 items-center">
+                                <strong className="text-sm text-white/80 w-28">Budget:</strong>
+                                {profileData?.budgetRange ? <InfoTag>{profileData.budgetRange}</InfoTag> : <InfoTag>Not set</InfoTag>}
+                            </div>
+                        </div>
+                    </div>
+                </div>
               </div>
             </div>
           ) : (
-            // Edit Mode
-            <div className="space-y-6">
-              <div>
-                <label htmlFor="fullName" className="block text-sm font-medium text-gray-200 mb-1">Full Name</label>
-                <input type="text" id="fullName" className="w-full p-3 rounded-lg bg-gray-700 text-white border-2 border-transparent focus:outline-none focus:border-white/20 focus:ring-2 focus:ring-[#ff5a57] transition-all duration-300" value={formFullName} onChange={(e) => setFormFullName(e.target.value)} />
-              </div>
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-200 mb-1">Email</label>
-                <input type="email" id="email" className="w-full p-3 rounded-lg bg-gray-700 text-white border-2 border-transparent focus:outline-none focus:border-white/20 focus:ring-2 focus:ring-[#ff5a57] transition-all duration-300" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} />
-              </div>
-              <div>
-                <label htmlFor="username" className="block text-sm font-medium text-gray-200 mb-1">Username</label>
-                <input type="text" id="username" className="w-full p-3 rounded-lg bg-gray-700 text-white border-2 border-transparent focus:outline-none focus:border-white/20 focus:ring-2 focus:ring-[#ff5a57] transition-all duration-300" value={formUsername} onChange={(e) => setFormUsername(e.target.value)} />
-              </div>
-
-              {/* Checkbox fields */}
-              <div>
-                <label className="block text-sm font-medium text-gray-200 mb-2">Travel Styles</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {travelStyleOptions.map(option => (
-                    <div key={option} className="flex items-center">
-                      <input type="checkbox" id={`travel-${option}`} value={option} checked={formTravelStyles.includes(option)} onChange={() => handleCheckboxChange(option, 'travelStyles')} className="h-4 w-4 text-[#ff5a57] bg-gray-700 border-gray-600 rounded focus:ring-[#e02f75]" />
-                      <label htmlFor={`travel-${option}`} className="ml-2 text-sm text-gray-300">{option}</label>
+            // --- EDIT MODE ---
+            <div className="bg-black/50 backdrop-blur-xl rounded-2xl p-8 border border-white/20 shadow-2xl">
+              <h1 className="text-3xl font-bold text-center text-white mb-6">Edit Your Profile</h1>
+              <div className="space-y-6">
+                
+                {/* Text Inputs */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label htmlFor="fullName" className="block text-sm font-medium text-white/80 mb-1">Full Name</label>
+                        <input type="text" id="fullName" className="w-full p-3 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400" value={formFullName} onChange={(e) => setFormFullName(e.target.value)} />
                     </div>
-                  ))}
+                    <div>
+                        <label htmlFor="username" className="block text-sm font-medium text-white/80 mb-1">Username</label>
+                        <input type="text" id="username" className="w-full p-3 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400" value={formUsername} onChange={(e) => setFormUsername(e.target.value)} />
+                    </div>
+                     <div className="md:col-span-2">
+                        <label htmlFor="email" className="block text-sm font-medium text-white/80 mb-1">Email</label>
+                        <input type="email" id="email" className="w-full p-3 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} />
+                    </div>
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-200 mb-2">Interests</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {interestOptions.map(option => (
-                    <div key={option} className="flex items-center">
-                      <input type="checkbox" id={`interest-${option}`} value={option} checked={formInterests.includes(option)} onChange={() => handleCheckboxChange(option, 'interests')} className="h-4 w-4 text-[#ff5a57] bg-gray-700 border-gray-600 rounded focus:ring-[#e02f75]" />
-                      <label htmlFor={`interest-${option}`} className="ml-2 text-sm text-gray-300">{option}</label>
+                
+                {/* Checkbox fields */}
+                <div>
+                    <label className="block text-sm font-medium text-white/80 mb-2">Travel Styles</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                        {travelStyleOptions.map(option => (
+                            <div key={option} className="flex items-center">
+                                <input type="checkbox" id={`travel-${option}`} value={option} checked={formTravelStyles.includes(option)} onChange={() => handleCheckboxChange(option, 'travelStyles')} className="h-4 w-4 text-blue-500 bg-white/20 border-white/30 rounded focus:ring-blue-400" />
+                                <label htmlFor={`travel-${option}`} className="ml-2 text-sm text-white/90">{option}</label>
+                            </div>
+                        ))}
                     </div>
-                  ))}
                 </div>
-              </div>
-              <div>
-                <label htmlFor="budgetRange" className="block text-sm font-medium text-gray-200 mb-1">Budget Range</label>
-                <select id="budgetRange" className="w-full p-3 rounded-lg bg-gray-700 text-white border-2 border-transparent focus:outline-none focus:border-white/20 focus:ring-2 focus:ring-[#ff5a57] transition-all duration-300" value={formBudgetRange} onChange={(e) => setFormBudgetRange(e.target.value)}>
-                  <option value="">Select a budget range</option>
-                  {budgetRangeOptions.map(option => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-200 mb-2">Dietary Restrictions</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {dietaryRestrictionsOptions.map(option => (
-                    <div key={option} className="flex items-center">
-                      <input type="checkbox" id={`dietary-${option}`} value={option} checked={formDietaryRestrictions.includes(option)} onChange={() => handleCheckboxChange(option, 'dietaryRestrictions')} className="h-4 w-4 text-[#ff5a57] bg-gray-700 border-gray-600 rounded focus:ring-[#e02f75]" />
-                      <label htmlFor={`dietary-${option}`} className="ml-2 text-sm text-gray-300">{option}</label>
+                <div>
+                    <label className="block text-sm font-medium text-white/80 mb-2">Interests</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                        {interestOptions.map(option => (
+                             <div key={option} className="flex items-center">
+                                <input type="checkbox" id={`interest-${option}`} value={option} checked={formInterests.includes(option)} onChange={() => handleCheckboxChange(option, 'interests')} className="h-4 w-4 text-blue-500 bg-white/20 border-white/30 rounded focus:ring-blue-400" />
+                                <label htmlFor={`interest-${option}`} className="ml-2 text-sm text-white/90">{option}</label>
+                            </div>
+                        ))}
                     </div>
-                  ))}
                 </div>
-              </div>
+                
+                {/* Select Field */}
+                <div>
+                    <label htmlFor="budgetRange" className="block text-sm font-medium text-white/80 mb-1">Budget Range</label>
+                    <select id="budgetRange" className="w-full p-3 rounded-lg bg-white/10 text-white border-2 border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-400" value={formBudgetRange} onChange={(e) => setFormBudgetRange(e.target.value)}>
+                        <option value="" className="bg-gray-800">Select a budget range</option>
+                        {budgetRangeOptions.map(option => (
+                            <option key={option} value={option} className="bg-gray-800">{option}</option>
+                        ))}
+                    </select>
+                </div>
+                
+                {/* Profile Picture Upload & Crop Section */}
+                <div className="p-4 rounded-xl bg-black/20 border border-white/10">
+                    <label htmlFor="profilePictureUpload" className="block text-sm font-medium text-white/80 mb-2">Upload New Profile Picture</label>
+                    <input type="file" id="profilePictureUpload" accept="image/*" onChange={handleFileChange} className="w-full text-white/80 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-500/50 file:text-white hover:file:bg-blue-500/70 transition-colors"/>
+                    {imageSrc && (
+                        <>
+                            <div className="mt-4 flex justify-center border border-white/20 rounded-md overflow-hidden bg-black/20">
+                                <ReactCrop crop={crop} onChange={c => setCrop(c)} onComplete={(c) => setCompletedCrop(c)} aspect={1} circularCrop>
+                                    <img ref={imgRef} src={imageSrc} onLoad={onImageLoad} alt="Source" className="max-w-full h-auto" />
+                                </ReactCrop>
+                            </div>
+                            <button onClick={handleUploadCroppedImage} disabled={!completedCrop || uploadingImage} className="mt-4 w-full px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition-colors disabled:bg-gray-500">
+                                {uploadingImage ? 'Uploading...' : 'Set Cropped Image'}
+                            </button>
+                        </>
+                    )}
+                    {imageUploadError && (<p className="mt-2 text-sm text-red-400">{imageUploadError}</p>)}
+                    {imageUploadSuccess && (<p className="mt-2 text-sm text-green-400">Image set successfully! Save your profile to apply.</p>)}
+                </div>
 
-              {/* Profile Picture Upload & Crop Section */}
-              <div className="p-4 rounded-xl backdrop-blur-sm bg-gray-700/50 border border-white/10">
-                <label htmlFor="profilePictureUpload" className="block text-sm font-medium text-gray-200 mb-2">Upload New Profile Picture</label>
-                <input
-                  type="file"
-                  id="profilePictureUpload"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="w-full text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-600/50 file:text-white hover:file:bg-gray-600 transition-colors"
-                />
-                {imageSrc && (
-                  <>
-                    <div className="mt-4 flex justify-center border border-white/20 rounded-md overflow-hidden">
-                      <ReactCrop
-                        crop={crop}
-                        onChange={c => setCrop(c)}
-                        onComplete={(c) => setCompletedCrop(c)}
-                        aspect={1}
-                        circularCrop
-                      >
-                        <img ref={imgRef} src={imageSrc} onLoad={onImageLoad} alt="Source" className="max-w-full h-auto" />
-                      </ReactCrop>
-                    </div>
-                    <GradientButton
-                      onClick={handleUploadCroppedImage}
-                      disabled={!completedCrop || uploadingImage}
-                      className="mt-4 w-full"
-                    >
-                      {uploadingImage ? 'Uploading...' : 'Upload Cropped Image'}
-                    </GradientButton>
-                  </>
-                )}
-                {imageUploadError && (<p className="mt-2 text-sm text-red-400">{imageUploadError}</p>)}
-                {imageUploadSuccess && (<p className="mt-2 text-sm text-green-400">Image uploaded successfully! URL set. 🎉</p>)}
-              </div>
-
-              <div className="flex justify-center space-x-4 mt-6">
-                <GradientButton onClick={handleUpdateProfile} disabled={loading || uploadingImage}>
-                  {loading ? 'Saving...' : 'Save Changes'}
-                </GradientButton>
-                <button onClick={handleCancelEdit} className="px-6 py-3 bg-gray-600 text-white font-bold rounded-full hover:bg-gray-700 transition-colors shadow-lg" disabled={loading || uploadingImage}>
-                  Cancel
-                </button>
+                <div className="flex justify-center items-center space-x-4 pt-4">
+                    <button onClick={handleUpdateProfile} disabled={loading || uploadingImage} className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors disabled:bg-gray-500">
+                        {loading ? 'Saving...' : 'Save Changes'}
+                    </button>
+                    <button onClick={handleCancelEdit} className="px-8 py-3 bg-white/20 text-white font-semibold rounded-lg hover:bg-white/30 transition-colors" disabled={loading || uploadingImage}>
+                        Cancel
+                    </button>
+                </div>
               </div>
             </div>
           )}
         </div>
       </div>
-    </div>
+    </>
   );
 }
