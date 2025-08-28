@@ -164,6 +164,8 @@ export default function NavigationBarLight() {
                            
                         <Link href="/blog" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Blogs</Link>
                         <Link href="/chat" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Chat</Link>
+                        <Link href="/feedback" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Feedback</Link>
+                        <Link href="/packing" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Packing</Link>
                             <NotificationsDropdown /> {/* 3. ADD the new component here */}
                     </div>
 
