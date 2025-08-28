@@ -329,7 +329,7 @@ function UserManagementView() {
                                 <td className="p-4 text-zinc-600">@{user.username || '(No Username)'}</td>
                                 <td className="p-4">
                                     <div className="flex items-center space-x-3">
-                                        <Link href={`/profile/${user.uid}`} className="px-3 py-1 text-sm font-medium text-zinc-700 bg-zinc-200 hover:bg-zinc-300 rounded-md transition-colors">
+                                        <Link href={`/Profilepage/${user.uid}`} className="px-3 py-1 text-sm font-medium text-zinc-700 bg-zinc-200 hover:bg-zinc-300 rounded-md transition-colors">
                                             Profile
                                         </Link>
                                         <button 
@@ -438,7 +438,7 @@ function BlogManagementView() {
                                 <td className="p-4 font-medium text-zinc-800">{blog.title || 'Untitled'}</td>
                                 <td className="p-4 text-zinc-600">{blog.location || 'No Location'}</td>
                                 <td className="p-4 text-zinc-600">{blog.authorName}</td>
-                                <td className="p-4 text-zinc-600">{blog.views?.toLocaleString() || 0}</td>
+                                <td className="p-4 text-zinc-600">{blog.viewCount?.toLocaleString() || 0}</td>
                                 <td className="p-4">
                                     <div className="flex items-center space-x-3">
                                         <Link
