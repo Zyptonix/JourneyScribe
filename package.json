@@ -13,6 +13,7 @@
     "dotenv": "^17.2.1",
     "firebase": "^12.0.0",
     "firebase-admin": "^13.4.0",
+    "framer-motion": "^12.23.12",
     "next": "15.4.5",
     "node-fetch": "^3.3.2",
     "react": "19.1.0",
