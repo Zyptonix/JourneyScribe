@@ -1,19 +1,10 @@
 // app/api/notifications/inapp/route.js
 
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
-import { getFirestore, collection, query, getDocs, limit, startAfter, doc } from 'firebase/firestore';
-import { db, auth } from '@/lib/firebaseClient'; // Adjust path as needed
+// REMOVED: No longer need client-side Firestore functions
+// import { collection, query, getDocs, limit, startAfter, doc, getDoc } from 'firebase/firestore'; 
 
-// Helper function to get authenticated user ID
-async function getAuthenticatedUserId() {
-    if (typeof __initial_auth_token !== 'undefined') {
-        await signInWithCustomToken(auth, __initial_auth_token);
-    } else {
-        await signInAnonymously(auth);
-    }
-    return auth.currentUser?.uid || crypto.randomUUID();
-}
+// CORRECT: Import the Admin SDK instances
+import { db, adminAuth } from '@/lib/firebaseAdmin';
 
 export async function GET(request) {
     const { searchParams } = new URL(request.url);
@@ -22,41 +13,52 @@ export async function GET(request) {
 
     let userId;
     try {
-        userId = await getAuthenticatedUserId();
+        const authorizationHeader = request.headers.get('Authorization');
+        if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
+            throw new Error('Authorization header is missing or malformed.');
+        }
+        const idToken = authorizationHeader.split('Bearer ')[1];
+        const decodedToken = await adminAuth.verifyIdToken(idToken);
+        userId = decodedToken.uid;
+
     } catch (authError) {
-        console.error("Authentication error:", authError);
+        console.error("Authentication error:", authError.message);
         return new Response(JSON.stringify({ error: 'Authentication failed.' }), { status: 401 });
     }
 
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-    const notificationsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/notifications`);
-
     try {
-        let q;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        
+        // 1. Get collection reference using Admin SDK syntax
+        const notificationsCollectionRef = db.collection(`artifacts/${appId}/users/${userId}/notifications`);
+
+        // 2. Create the base query using chainable Admin SDK methods
+        // NOTE: You need a 'timestamp' field in your documents for this to work.
+        // If you don't have one, you can order by another field or remove orderBy.
+        let q = notificationsCollectionRef.orderBy('timestamp', 'desc');
+
+        // 3. Handle pagination if lastDocId is provided
         if (lastDocId) {
-            // No orderBy for pagination with startAfter directly (Firestore limitation without index)
-            // For simple pagination, orderBy is implied by 'document ID' for startAfter if no other order is set.
-            // If explicit ordering is needed (e.g., by timestamp), you would add `orderBy('timestamp', 'desc')` here,
-            // and ensure an index exists. For this example, we'll keep it simple as Firestore default queries.
-            const lastDocSnapshot = await getDocs(query(notificationsCollectionRef, limit(1), doc(notificationsCollectionRef, lastDocId)));
-            if (lastDocSnapshot.empty) {
-                return new Response(JSON.stringify({ notifications: [], message: 'Last document not found for pagination.' }), {
-                    status: 404, headers: { 'Content-Type': 'application/json' }
-                });
+            const lastDocSnapshot = await notificationsCollectionRef.doc(lastDocId).get();
+            if (!lastDocSnapshot.exists) {
+                return new Response(JSON.stringify({ message: 'Last document not found.' }), { status: 404 });
             }
-            q = query(notificationsCollectionRef, startAfter(lastDocSnapshot.docs[0]), limit(limitCount));
-        } else {
-            q = query(notificationsCollectionRef, limit(limitCount));
+            q = q.startAfter(lastDocSnapshot);
         }
 
-        const querySnapshot = await getDocs(q);
-        const notifications = [];
-        querySnapshot.forEach((doc) => {
-            notifications.push({ id: doc.id, ...doc.data() });
-        });
+        // 4. Add the limit and execute the query with .get()
+        const querySnapshot = await q.limit(limitCount).get();
 
-        // Determine if there are more notifications for further pagination
-        const hasMore = querySnapshot.docs.length === limitCount;
+        if (querySnapshot.empty) {
+            return new Response(JSON.stringify({ notifications: [], hasMore: false, lastDocId: null }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+        
+        const notifications = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        const hasMore = notifications.length === limitCount;
         const newLastDocId = hasMore ? querySnapshot.docs[querySnapshot.docs.length - 1].id : null;
 
         return new Response(JSON.stringify({ notifications, hasMore, lastDocId: newLastDocId }), {
@@ -65,10 +67,7 @@ export async function GET(request) {
         });
 
     } catch (error) {
-        console.error('Error fetching in-app notifications:', error);
-        return new Response(JSON.stringify({ error: 'Failed to fetch in-app notifications.', details: error.message }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        console.error('Error fetching notifications:', error);
+        return new Response(JSON.stringify({ error: 'Failed to fetch notifications.' }), { status: 500 });
     }
 }
