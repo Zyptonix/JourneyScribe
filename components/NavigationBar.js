@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect, useRef } from 'react';
 import { auth, db } from '@/lib/firebaseClient'; // Your specified import path
 import { onAuthStateChanged, signOut } from 'firebase/auth';
@@ -6,117 +8,131 @@ import Link from 'next/link'; // Import Next.js Link component
 import NotificationsDropdown from './NotificationsDropdown';
 
 export default function NavigationBar() {
-    const [showUserDropdown, setShowUserDropdown] = useState(false);
-    const [showBookingDropdown, setShowBookingDropdown] = useState(false); // State for the new booking dropdown
-    const [userData, setUserData] = useState(null);
-    const [loading, setLoading] = useState(false); // Loading for user data fetch
-    const [error, setError] = useState(null);
-    const [userId, setUserId] = useState(null);
-    const [isAuthReady, setIsAuthReady] = useState(false);
-    const [isUserAuthenticated, setIsUserAuthenticated] = useState(false);
-    const [loadingAuth, setLoadingAuth] = useState(true); // Loading for initial Firebase auth check
+    const [showUserDropdown, setShowUserDropdown] = useState(false);
+    const [showBookingDropdown, setShowBookingDropdown] = useState(false); // State for the new booking dropdown
+    const [showTripsDropdown, setShowTripsDropdown] = useState(false); // State for the trips dropdown
+    const [showBlogsDropdown, setShowBlogsDropdown] = useState(false); // State for the blogs dropdown
+    const [showPlanningDropdown, setShowPlanningDropdown] = useState(false); // State for the planning dropdown
+    const [userData, setUserData] = useState(null);
+    const [loading, setLoading] = useState(false); // Loading for user data fetch
+    const [error, setError] = useState(null);
+    const [userId, setUserId] = useState(null);
+    const [isAuthReady, setIsAuthReady] = useState(false);
+    const [isUserAuthenticated, setIsUserAuthenticated] = useState(false);
+    const [loadingAuth, setLoadingAuth] = useState(true); // Loading for initial Firebase auth check
 
-    const userDropdownRef = useRef(null);
-    const bookingDropdownRef = useRef(null); // Ref for the new booking dropdown
+    const userDropdownRef = useRef(null);
+    const bookingDropdownRef = useRef(null);
+    const tripsDropdownRef = useRef(null); // Ref for the trips dropdown
+    const blogsDropdownRef = useRef(null); // Ref for the blogs dropdown
+    const planningDropdownRef = useRef(null); // Ref for the planning dropdown
 
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-    // --- Firebase Authentication State Listener ---
-    useEffect(() => {
-        if (!auth || !db) {
-            console.warn("Firebase Auth or Firestore not initialized.");
-            setIsAuthReady(true);
-            setLoadingAuth(false);
-            return;
-        }
+    // --- Firebase Authentication State Listener ---
+    useEffect(() => {
+        if (!auth || !db) {
+            console.warn("Firebase Auth or Firestore not initialized.");
+            setIsAuthReady(true);
+            setLoadingAuth(false);
+            return;
+        }
 
-        setLoadingAuth(true);
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                setUserId(user.uid);
-                setIsUserAuthenticated(true);
-            } else {
-                setUserId(null);
-                setIsUserAuthenticated(false);
-                setUserData(null);
-                setError(null);
-                setLoading(false);
-            }
-            setIsAuthReady(true);
-            setLoadingAuth(false);
-        });
+        setLoadingAuth(true);
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                setUserId(user.uid);
+                setIsUserAuthenticated(true);
+            } else {
+                setUserId(null);
+                setIsUserAuthenticated(false);
+                setUserData(null);
+                setError(null);
+                setLoading(false);
+            }
+            setIsAuthReady(true);
+            setLoadingAuth(false);
+        });
 
-        return () => unsubscribe();
-    }, [auth, db]);
+        return () => unsubscribe();
+    }, []);
 
-    // --- Fetch user details if authenticated ---
-    useEffect(() => {
-        if (isAuthReady && isUserAuthenticated && db && userId) {
-            fetchUserDetails();
-        } else if (isAuthReady && !isUserAuthenticated) {
-            setUserData(null);
-            setError(null);
-            setLoading(false);
-        }
-    }, [isAuthReady, isUserAuthenticated, db, userId]);
+    // --- Fetch user details if authenticated ---
+    useEffect(() => {
+        if (isAuthReady && isUserAuthenticated && db && userId) {
+            fetchUserDetails();
+        } else if (isAuthReady && !isUserAuthenticated) {
+            setUserData(null);
+            setError(null);
+            setLoading(false);
+        }
+    }, [isAuthReady, isUserAuthenticated, db, userId]);
 
-    const fetchUserDetails = async () => {
-        if (!db || !userId || !isAuthReady || !isUserAuthenticated) {
-            return;
-        }
-        setLoading(true);
-        setError(null);
-        try {
-            const userProfileRef = doc(db, "userProfiles", userId);
-            const docSnap = await getDoc(userProfileRef);
-            if (docSnap.exists()) {
-                setUserData(docSnap.data());
-            } else {
-                setUserData({ message: "No user profile found." });
-            }
-        } catch (err) {
-            console.error("Error fetching user data:", err);
-            setError("Failed to load user data.");
-            setUserData(null);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const fetchUserDetails = async () => {
+        if (!db || !userId || !isAuthReady || !isUserAuthenticated) {
+            return;
+        }
+        setLoading(true);
+        setError(null);
+        try {
+            const userProfileRef = doc(db, "userProfiles", userId);
+            const docSnap = await getDoc(userProfileRef);
+            if (docSnap.exists()) {
+                setUserData(docSnap.data());
+            } else {
+                setUserData({ message: "No user profile found." });
+            }
+        } catch (err) {
+            console.error("Error fetching user data:", err);
+            setError("Failed to load user data.");
+            setUserData(null);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    // --- Handle User Logout ---
-    const handleLogout = async () => {
-        setLoadingAuth(true);
-        try {
-            if (auth) {
-                await signOut(auth);
-            }
-        } catch (logoutError) {
-            console.error("Error signing out:", logoutError);
-            setError("Error signing out: " + logoutError.message);
-        }
-    };
-    
-    // --- Close dropdowns when clicking outside ---
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (userDropdownRef.current && !userDropdownRef.current.contains(event.target)) {
-                setShowUserDropdown(false);
-            }
-            if (bookingDropdownRef.current && !bookingDropdownRef.current.contains(event.target)) {
-                setShowBookingDropdown(false);
-            }
-        };
+    // --- Handle User Logout ---
+    const handleLogout = async () => {
+        setLoadingAuth(true);
+        try {
+            if (auth) {
+                await signOut(auth);
+            }
+        } catch (logoutError) {
+            console.error("Error signing out:", logoutError);
+            setError("Error signing out: " + logoutError.message);
+        }
+    };
+    
+    // --- Close dropdowns when clicking outside ---
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (userDropdownRef.current && !userDropdownRef.current.contains(event.target)) {
+                setShowUserDropdown(false);
+            }
+            if (bookingDropdownRef.current && !bookingDropdownRef.current.contains(event.target)) {
+                setShowBookingDropdown(false);
+            }
+                if (tripsDropdownRef.current && !tripsDropdownRef.current.contains(event.target)) {
+                    setShowTripsDropdown(false);
+                }
+            if (blogsDropdownRef.current && !blogsDropdownRef.current.contains(event.target)) {
+                setShowBlogsDropdown(false);
+            }
+            if (planningDropdownRef.current && !planningDropdownRef.current.contains(event.target)) {
+                setShowPlanningDropdown(false);
+            }
+        };
 
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, []);
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
 
-    // Determine the display name and picture
-    const userNameDisplay = (userData && userData.fullName) ? userData.fullName : "Guest";
-    const userPictureDisplay = (userData && userData.profilePicture) ? userData.profilePicture : "https://placehold.co/40x40/FF5733/FFFFFF?text=JD"; // Fallback
+    const userNameDisplay = (userData && userData.fullName) ? userData.fullName : "Guest";
+    const userPictureDisplay = (userData && userData.profilePicture) ? userData.profilePicture : "https://placehold.co/40x40/FF5733/FFFFFF?text=JD"; // Fallback
 
     return (
         <>
@@ -129,8 +145,8 @@ export default function NavigationBar() {
 
                     <div className="flex items-center space-x-4 md:space-x-6">
                         <div className="hidden md:flex items-center space-x-2">
-                            <Link href="/notifications" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Notifications</Link>
-                            <Link href="/Profilepage" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Profile</Link>
+                           
+                        
                             
                             {/* --- NEW BOOKING DROPDOWN --- */}
                             <div className="relative" ref={bookingDropdownRef}>
@@ -153,13 +169,73 @@ export default function NavigationBar() {
                                 )}
                             </div>
 
-                            <Link href="/blog" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Blogs</Link>
-                            <Link href="/chat" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Chat</Link>
-                            <Link href="/feedback" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Feedback</Link>
-                            <Link href="/packing" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Packing</Link>
-                            <Link href="/itinerary" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Itinerary</Link>
-                            <Link href="/activities" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Activities</Link>
+                            {/* --- NEW TRIPS DROPDOWN --- */}
+                            <div className="relative" ref={tripsDropdownRef}>
+                                <button 
+                                    onClick={() => setShowTripsDropdown(prev => !prev)}
+                                    className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg flex items-center"
+                                >
+                                    Trips
+                                    <svg className={`w-4 h-4 ml-1 transition-transform duration-200 ${showTripsDropdown ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                </button>
+                                {showTripsDropdown && (
+                                    <div className="absolute top-full mt-4 w-48 bg-white/[0.4] backdrop-blur-lg rounded-lg shadow-xl border border-white/20 z-30">
+                                        <div className="py-2">
+                                            <Link href="/travel-tools" className="block px-4 py-2 text-slate-900 hover:bg-blue-500 hover:text-white transition-colors font-semibold">Travel tools</Link> 
+                                            <Link href="/trip-documents" className="block px-4 py-2 text-slate-900 hover:bg-blue-500 hover:text-white transition-colors font-semibold">Trip Documents</Link>
+                                            <Link href="/trips" className="block px-4 py-2 text-slate-900 hover:bg-blue-500 hover:text-white transition-colors font-semibold">Trips</Link>                           
+                                        </div>
+                                        
+                                    </div>
+                                )}
+                            </div>
 
+                            {/* --- NEW Blogs DROPDOWN --- */}
+                            <div className="relative" ref={blogsDropdownRef}>
+                                <button 
+                                    onClick={() => setShowBlogsDropdown(prev => !prev)}
+                                    className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg flex items-center"
+                                >
+                                    Blogs
+                                    <svg className={`w-4 h-4 ml-1 transition-transform duration-200 ${showBlogsDropdown ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                </button>
+                                {showBlogsDropdown && (
+                                    <div className="absolute top-full mt-4 w-48 bg-white/[0.4] backdrop-blur-lg rounded-lg shadow-xl border border-white/20 z-30">
+                                        <div className="py-2">
+                                            <Link href="/blog" className="block px-4 py-2 text-slate-900 hover:bg-blue-500 hover:text-white transition-colors font-semibold">Blogs</Link>
+                                            <Link href="/feedback" className="block px-4 py-2 text-slate-900 hover:bg-blue-500 hover:text-white transition-colors font-semibold">Feedback</Link>
+                                        </div>
+                                        
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* --- NEW Planning DROPDOWN --- */}
+                            <div className="relative" ref={planningDropdownRef}>
+                                <button 
+                                    onClick={() => setShowPlanningDropdown(prev => !prev)}
+                                    className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg flex items-center"
+                                >
+                                    Planning
+                                    <svg className={`w-4 h-4 ml-1 transition-transform duration-200 ${showPlanningDropdown ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                </button>
+                                {showPlanningDropdown && (
+                                    <div className="absolute top-full mt-4 w-48 bg-white/[0.4] backdrop-blur-lg rounded-lg shadow-xl border border-white/20 z-30">
+                                        <div className="py-2">
+                                            <Link href="/packing" className="block px-4 py-2 text-slate-900 hover:bg-blue-500 hover:text-white transition-colors font-semibold">Packing</Link>
+                                            <Link href="/itinerary" className="block px-4 py-2 text-slate-900 hover:bg-blue-500 hover:text-white transition-colors font-semibold">Itinerary</Link>
+                                            <Link href="/activities" className="block px-4 py-2 text-slate-900 hover:bg-blue-500 hover:text-white transition-colors font-semibold">Activities</Link>
+                                        </div>
+                                        
+                                    </div>
+                                )}
+                            </div>
+
+                            
+                            <Link href="/chat" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Chat</Link>
+                            
+                            
+                            <Link href="/expense" className="text-slate-900 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg">Expenses</Link>
                             <NotificationsDropdown /> {/* 3. ADD the new component here */}
                         </div>
 
@@ -199,14 +275,18 @@ export default function NavigationBar() {
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="text-center pt-2 border-t border-gray-200 dark:border-gray-700">
+                                        <div className="text-center pt-2 border-t border-gray-200 dark:border-gray-700 flex-row gap-5">
                                             <button
                                                 onClick={handleLogout}
-                                                className="px-4 py-2 rounded-lg bg-red-600 text-white font-semibold shadow-md hover:bg-red-700 transition-colors"
+                                                className="px-4 py-2 mr-5 rounded-lg bg-red-600 text-white font-semibold shadow-md hover:bg-red-700 transition-colors"
                                                 disabled={loadingAuth}
                                             >
                                                 Sign Out
                                             </button>
+                                            <Link href="/Profilepage" className="px-6 py-2.5 rounded-lg text-white font-semibold transition-all duration-300 ease-in-out bg-blue-500 hover:bg-blue-600 hover:text-white hover:shadow-lg">Profile</Link>
+                                        </div>
+                                        <div className="text-center pt-2 flex-row gap-5 mt-2">
+                                         <Link href="/notifications" className="bg-green-600 text-white font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-green-700 hover:text-white hover:shadow-lg">Notifications</Link>
                                         </div>
                                     </div>
                                 )}
