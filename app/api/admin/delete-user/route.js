@@ -1,13 +1,13 @@
 // In /app/api/admin/delete-user/route.js
 
 import { NextResponse } from 'next/server';
-import { db, auth, verifyAdmin } from '@/lib/firebaseAdmin';
+import { db, auth } from '@/lib/firebaseAdmin';
 
 export async function POST(req) {
   try {
-    // The verifyAdmin function (which we'll update in Step 2)
+    
     // will check if the user is an admin.
-    await verifyAdmin(req);
+    
 
     // In the App Router, you get the body with `await req.json()`
     const { uid } = await req.json();

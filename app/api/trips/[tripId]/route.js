@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import { initAdmin } from '@/lib/firebaseAdmin';
 import { getAmadeusToken } from '@/lib/amadeusToken';
-
+import { db } from '@/lib/firebaseAdmin';
 
 const tripsCol = db.collection('trips');
 

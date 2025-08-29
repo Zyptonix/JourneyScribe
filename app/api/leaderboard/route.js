@@ -1,6 +1,6 @@
 // app/api/leaderboard/route.js
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/firestore';
+import { db } from '@/lib/firebaseAdmin.js';
 
 export async function GET(req) {
   // Simple leaderboard: number of trips created per owner

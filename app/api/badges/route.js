@@ -1,7 +1,24 @@
 // app/api/badges/route.js
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/firestore';
-import { getUserFromRequest } from '@/lib/auth';
+import { db,auth } from '@/lib/firebaseAdmin';
+
+// Helper: get userId from query param OR Authorization Bearer token
+async function getUserIdFromReq(req) {
+  const { searchParams } = new URL(req.url);
+  const qUserId = searchParams.get("userId");
+  if (qUserId) return qUserId;
+
+  const authHeader = req.headers.get("Authorization") || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (!token) return null;
+
+  try {
+    const decoded = await auth.verifyIdToken(token);
+    return decoded.uid;
+  } catch {
+    return null;
+  }
+}
 
 const badgesCol = db.collection('badges');
 const userBadgesCol = db.collection('userBadges');
