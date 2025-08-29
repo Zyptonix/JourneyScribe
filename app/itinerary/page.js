@@ -4,6 +4,7 @@ import { PlusIcon, CurrencyDollarIcon, CalendarIcon, ClockIcon, TrashIcon, Cloud
 import { db, auth } from '@/lib/firebaseClient';
 import { collection, doc, setDoc, onSnapshot, query, orderBy, deleteDoc } from 'firebase/firestore';
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import NavigationBarDark from '@/components/NavigationBarDark';
 
 // Helper to format 24-hour time to 12-hour AM/PM format
 const formatTime12Hour = (time24) => {
@@ -148,10 +149,12 @@ export default function ItineraryPage() {
 
     return (
         <>
+            
             <div className="fixed inset-0 -z-10 h-full w-full" style={{ backgroundImage: "url('/assets/itinerary3.jpg')", backgroundSize: 'cover', backgroundPosition: 'center' }} />
             <div className="fixed inset-0 bg-black/70 backdrop-blur-sm -z-10" />
 
-            <div className="min-h-screen font-inter flex flex-col items-center pt-28 pb-12 px-4 relative z-10 text-white">
+            <div className='relative top-0 z-50'><NavigationBarDark /></div>
+            <div className="min-h-screen font-inter flex flex-col items-center pt-10 pb-10 px-4 relative z-10 text-white">
                 <div className="w-full max-w-7xl mx-auto">
                     <h1 className="text-5xl md:text-6xl font-extrabold text-center mb-4 text-shadow-lg">Your Trip Itinerary</h1>
                     <p className="text-center text-white/80 mb-12">Manage your schedule, add custom events, and keep track of your budget. Your changes are saved automatically.</p>
@@ -225,9 +228,9 @@ export default function ItineraryPage() {
                                                                         <p className="text-sm font-semibold text-blue-300">{formatTime12Hour(item.time)}</p>
                                                                         <h4 className="text-xl font-bold mt-1">{item.name}</h4>
                                                                         
-                                                                        {/* FIX: Use the stripHtml function */}
+                                                                        {/* FIX: Added scrollbar-hide utility */}
                                                                         {item.description && (
-                                                                            <p className="text-sm text-white/70 mt-2">
+                                                                            <p className="text-sm text-white/70 mt-2 h-24 overflow-y-auto scrollbar-hide">
                                                                                 {stripHtml(item.description)}
                                                                             </p>
                                                                         )}

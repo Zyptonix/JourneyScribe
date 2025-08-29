@@ -5,6 +5,7 @@ import { db, auth } from '@/lib/firebaseClient';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import CitySearchInput from '@/components/CitySearchInput'; // Import the component
+import NavigationBarDark from '@/components/NavigationBarDark';
 
 // Helper function to strip HTML tags using the provided regex
 const stripHtml = (html) => {
@@ -109,7 +110,9 @@ export default function ActivitiesPage() {
 
     return (
         <>
+            
             <div className="min-h-screen w-full bg-cover bg-center font-inter text-white" style={{ backgroundImage: "url('/assets/activities.jpg')" }}>
+                <div className='relative top-0 z-50'><NavigationBarDark /></div>
                 <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
                 <div className="relative z-10 container mx-auto px-4 py-16">
                     <h1 className="text-5xl md:text-7xl font-extrabold text-center mb-4 text-shadow-lg">Find Your Next Adventure</h1>
@@ -153,7 +156,7 @@ export default function ActivitiesPage() {
                                             
                                             {/* FIX: Use the stripHtml function to show plain text */}
                                             {poi.description && (
-                                                <p className="text-sm text-white/70 mb-2 h-38 overflow-hidden">
+                                                <p className="text-sm text-white/70 mb-2 h-38 overflow-y-scroll no-scrollbar">
                                                     {stripHtml(poi.description)}
                                                 </p>
                                             )}
