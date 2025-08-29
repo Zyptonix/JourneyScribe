@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebaseClient.js';
 import { onAuthStateChanged, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
-import { doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, getDoc, collection, query, where } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import NavigationBarDark from '@/components/NavigationBarDark';
 
 // --- Helper Components ---
@@ -40,17 +40,42 @@ const UserAvatar = ({ userId }) => {
 // --- Global variables ---
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+const currencyOptions = ['BDT', 'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD'];
+
+// --- New Helper Function to Calculate Duration ---
+const calculateDurationInDays = (start, end) => {
+    if (!start || !end) return '';
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || endDate < startDate) {
+        return 'Invalid dates';
+    }
+    // Calculate difference in time
+    const diffTime = Math.abs(endDate - startDate);
+    // Convert time difference to days and add 1 to make it inclusive
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    return `${diffDays} day${diffDays !== 1 ? 's' : ''}`;
+};
+
 
 export default function TripDetailsPage({ params }) {
     const [userId, setUserId] = useState(null);
     const [trip, setTrip] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [requestingUsersData, setRequestingUsersData] = useState([]); // For optimized modal
+    const [requestingUsersData, setRequestingUsersData] = useState([]);
     const [myBlogs, setMyBlogs] = useState([]);
     const [selectedBlogId, setSelectedBlogId] = useState('');
     const [isEditing, setIsEditing] = useState(false);
-    const [editForm, setEditForm] = useState({ location: '', duration: '', description: '', cost: '' });
+    const [editForm, setEditForm] = useState({ 
+        location: '', 
+        duration: '', 
+        description: '', 
+        cost: '', 
+        currency: 'BDT', // Added currency state
+        startDate: '', 
+        endDate: '' 
+    });
 
     const router = useRouter();
     const { tripId } = use(params);
@@ -59,7 +84,6 @@ export default function TripDetailsPage({ params }) {
         const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 setUserId(user.uid);
-                // Fetch user's blogs for the linking feature
                 const blogsQuery = query(collection(db, 'blogs'), where("authorId", "==", user.uid));
                 onSnapshot(blogsQuery, (snapshot) => {
                     setMyBlogs(snapshot.docs.map(doc => ({ id: doc.id, title: doc.data().title })));
@@ -87,7 +111,10 @@ export default function TripDetailsPage({ params }) {
                     location: tripData.location,
                     duration: tripData.duration,
                     description: tripData.description || '',
-                    cost: tripData.cost || ''
+                    cost: tripData.cost || '',
+                    currency: tripData.currency || 'BDT', // Retains currency from database
+                    startDate: tripData.startDate || '',
+                    endDate: tripData.endDate || ''
                 });
             } else {
                 console.error("Trip not found!");
@@ -96,6 +123,14 @@ export default function TripDetailsPage({ params }) {
         });
         return () => unsubscribe();
     }, [tripId]);
+
+    // --- New useEffect to automatically calculate duration ---
+    useEffect(() => {
+        if (editForm.startDate && editForm.endDate) {
+            const newDuration = calculateDurationInDays(editForm.startDate, editForm.endDate);
+            setEditForm(prevForm => ({ ...prevForm, duration: newDuration }));
+        }
+    }, [editForm.startDate, editForm.endDate]);
     
     const fetchRequestingUsers = async () => {
         if (!trip || trip.requests.length === 0) {
@@ -149,6 +184,22 @@ export default function TripDetailsPage({ params }) {
         await updateDoc(postRef, { linkedBlogId: selectedBlogId });
         setSelectedBlogId('');
     };
+    
+    const getTripStatus = (startDate, endDate) => {
+        const now = new Date();
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        
+        if (!startDate || !endDate) return { text: 'Date TBD', color: 'bg-gray-500' };
+
+        if (end < now) {
+            return { text: 'Completed', color: 'bg-gray-500' };
+        } else if (start <= now && end >= now) {
+            return { text: 'Ongoing', color: 'bg-green-500' };
+        } else {
+            return { text: 'Planned', color: 'bg-blue-500' };
+        }
+    };
 
     if (loading) return <div className="min-h-screen flex items-center justify-center bg-black text-white">Loading Trip...</div>;
     if (!trip) return <div className="min-h-screen flex items-center justify-center bg-black text-white">Trip not found.</div>;
@@ -156,6 +207,10 @@ export default function TripDetailsPage({ params }) {
     const isOwner = userId === trip.userId;
     const isMember = trip.accepted?.includes(userId);
     const hasRequested = trip.requests?.includes(userId);
+    const status = getTripStatus(trip.startDate, trip.endDate);
+    
+    // Helper to format the cost and currency for display
+    const formattedCost = trip.cost ? `${trip.currency} ${trip.cost}` : 'Not Specified';
 
     return (
         <Suspense>
@@ -169,9 +224,29 @@ export default function TripDetailsPage({ params }) {
                             {isEditing ? (
                                 <form onSubmit={handleUpdateTrip} className="space-y-4">
                                     <input type="text" value={editForm.location} onChange={(e) => setEditForm({...editForm, location: e.target.value})} className="w-full p-3 text-4xl font-extrabold bg-white/10 rounded-lg border-2 border-white/30 focus:outline-none focus:border-blue-400" />
-                                    <input type="text" value={editForm.duration} onChange={(e) => setEditForm({...editForm, duration: e.target.value})} className="w-full p-2 text-lg bg-white/10 rounded-lg border-2 border-white/30 focus:outline-none focus:border-blue-400" />
+                                    <div className="flex gap-4">
+                                        <input type="date" value={editForm.startDate} onChange={(e) => setEditForm({...editForm, startDate: e.target.value})} className="w-full p-2 text-lg bg-white/10 rounded-lg border-2 border-white/30 focus:outline-none focus:border-blue-400" />
+                                        <input type="date" value={editForm.endDate} onChange={(e) => setEditForm({...editForm, endDate: e.target.value})} className="w-full p-2 text-lg bg-white/10 rounded-lg border-2 border-white/30 focus:outline-none focus:border-blue-400" />
+                                    </div>
+                                    <input type="text" value={editForm.duration} readOnly placeholder="Duration (auto-calculated)" className="w-full p-2 text-lg bg-white/5 text-white/70 rounded-lg border-2 border-white/30 focus:outline-none" />
                                     <textarea value={editForm.description} onChange={(e) => setEditForm({...editForm, description: e.target.value})} rows="5" className="w-full p-2 bg-white/10 rounded-lg border-2 border-white/30 focus:outline-none focus:border-blue-400" />
-                                    <input type="number" value={editForm.cost} onChange={(e) => setEditForm({...editForm, cost: e.target.value})} placeholder="Trip Cost (USD)" className="w-full p-2 bg-white/10 rounded-lg border-2 border-white/30 focus:outline-none focus:border-blue-400" />
+                                    
+                                    {/* Currency input for editing */}
+                                    <div className="flex items-center space-x-2">
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-white/80 mb-2">Estimated Cost</label>
+                                            <input type="number" value={editForm.cost} onChange={(e) => setEditForm({...editForm, cost: e.target.value})} placeholder="Trip Cost" className="w-full p-2 bg-white/10 rounded-lg border-2 border-white/30 focus:outline-none focus:border-blue-400" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-white/80 mb-2">Currency</label>
+                                            <select value={editForm.currency} onChange={(e) => setEditForm({...editForm, currency: e.target.value})} className="w-full p-2 rounded-lg bg-white/5 border-2 border-white/30 focus:outline-none focus:border-blue-400">
+                                                {currencyOptions.map(option => (
+                                                    <option key={option} value={option}>{option}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+
                                     <div className="flex gap-4">
                                         <button type="submit" className="flex-1 p-3 bg-green-600 rounded-lg hover:bg-green-700">Save Changes</button>
                                         <button type="button" onClick={() => setIsEditing(false)} className="flex-1 p-3 bg-gray-600 rounded-lg hover:bg-gray-700">Cancel</button>
@@ -182,7 +257,10 @@ export default function TripDetailsPage({ params }) {
                                     <div className="flex justify-between items-start">
                                         <div>
                                             <h1 className="text-4xl md:text-5xl font-extrabold mb-2">{trip.location}</h1>
-                                            <p className="text-lg text-white/80 mb-4">{trip.duration}</p>
+                                            <div className="flex items-center gap-4 mb-4">
+                                                <p className="text-lg text-white/80">{trip.duration}</p>
+                                                <span className={`px-3 py-1 text-sm font-bold rounded-full ${status.color}`}>{status.text}</span>
+                                            </div>
                                             <p className="text-sm text-white/70 mb-6">Posted by: {trip.username}</p>
                                         </div>
                                         {isOwner && <button onClick={() => setIsEditing(true)} className="p-2 bg-white/20 rounded-lg hover:bg-white/30">Edit Trip</button>}
@@ -190,7 +268,7 @@ export default function TripDetailsPage({ params }) {
                                     <img src={trip.imageUrl} alt={`Trip to ${trip.location}`} className="w-full h-80 object-cover rounded-lg mb-6" />
                                     <h2 className="text-2xl font-bold mb-2">Trip Details</h2>
                                     <p className="text-white/90 mb-2 whitespace-pre-wrap">{trip.description || 'No description provided.'}</p>
-                                    {trip.cost > 0 && <p className="text-xl font-bold text-green-400 mb-8">Estimated Cost: ${trip.cost}</p>}
+                                    {trip.cost > 0 && <p className="text-xl font-bold text-green-400 mb-8">Estimated Cost: {formattedCost}</p>}
                                 </>
                             )}
 
@@ -200,7 +278,6 @@ export default function TripDetailsPage({ params }) {
                                 {(isOwner || isMember) && <button onClick={handleGoToChat} className="p-3 bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors">Group Chat</button>}
                             </div>
 
-                            {/* Member List */}
                             <div className="my-8">
                                 <h3 className="text-xl font-bold mb-4">Trip Members ({trip.accepted?.length || 0} / {trip.maxMembers})</h3>
                                 <div className="flex flex-wrap gap-4">
@@ -208,7 +285,6 @@ export default function TripDetailsPage({ params }) {
                                 </div>
                             </div>
 
-                            {/* Link Blog Post */}
                             {(isOwner || isMember) && !trip.linkedBlogId && (
                                 <div className="my-8 p-4 bg-black/20 rounded-lg">
                                     <h3 className="text-lg font-semibold mb-2">Link Your Blog Post</h3>

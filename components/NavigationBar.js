@@ -6,6 +6,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import Link from 'next/link'; // Import Next.js Link component
 import NotificationsDropdown from './NotificationsDropdown';
+import { useRouter } from 'next/navigation';
 
 export default function NavigationBar() {
     const [showUserDropdown, setShowUserDropdown] = useState(false);
@@ -26,7 +27,7 @@ export default function NavigationBar() {
     const tripsDropdownRef = useRef(null); // Ref for the trips dropdown
     const blogsDropdownRef = useRef(null); // Ref for the blogs dropdown
     const planningDropdownRef = useRef(null); // Ref for the planning dropdown
-
+    const router = useRouter();
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
     // --- Firebase Authentication State Listener ---
@@ -130,6 +131,27 @@ export default function NavigationBar() {
         };
     }, []);
 
+    {/* --- HELPER COMPONENT AND ICONS (Place these outside your main component or in a separate file) --- */}
+    const MenuItem = ({ icon, children, onClick, disabled, isDestructive = false }) => (
+        <button
+            onClick={onClick}
+            disabled={disabled}
+            className={`w-full flex items-center gap-3 px-4 py-2 text-sm text-left ${
+                isDestructive 
+                    ? 'text-red-600 dark:text-red-500' 
+                    : 'text-gray-700 dark:text-gray-300'
+            } hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+        >
+            {icon}
+            <span>{children}</span>
+        </button>
+    );
+
+    // --- SVG Icons ---
+    const UserIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>;
+    const BellIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>;
+    const TrophyIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19c-5 0-7-3-7-7 0-4 2-7 7-7 4 0 7 3 7 7 0 4-2 7-7 7zM9 19c0 2 1 4 3 4s3-2 3-4M5 12h8m-4-4v8" /></svg>;
+    const LogoutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>;
 
     const userNameDisplay = (userData && userData.fullName) ? userData.fullName : "Guest";
     const userPictureDisplay = (userData && userData.profilePicture) ? userData.profilePicture : "https://placehold.co/40x40/FF5733/FFFFFF?text=JD"; // Fallback
@@ -244,53 +266,56 @@ export default function NavigationBar() {
                             <div className="px-4 py-2 text-black ">Loading...</div>
                         ) : isUserAuthenticated ? (
                             <div className="relative" ref={userDropdownRef}>
-                                <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setShowUserDropdown(prev => !prev)}>
-                                    <span className="text-black text-sm md:text-base font-semibold hidden sm:block">{userNameDisplay}</span>
-                                    <img
-                                        src={userPictureDisplay}
-                                        alt="User Profile"
-                                        className="w-10 h-10 rounded-full border-2 border-blue-500 shadow-md object-cover"
-                                        onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/40x40/CCCCCC/666666?text=User"; }}
-                                    />
-                                </div>
-                                {showUserDropdown && (
-                                    <div className="absolute top-full right-0 mt-2 w-72 bg-white dark:bg-gray-800 rounded-lg shadow-xl py-4 border border-blue-500 z-20">
-                                        <div className="p-4">
-                                            <h3 className="text-lg font-bold mb-3 text-gray-900 dark:text-gray-100 text-center">User Details</h3>
-                                            {loading && <p className="text-center text-blue-500">Loading...</p>}
-                                            {error && <p className="text-center text-red-500">{error}</p>}
+                                    {/* User Avatar to trigger dropdown */}
+                                    <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setShowUserDropdown(prev => !prev)}>
+                                        <span className="text-gray-800 text-sm md:text-base font-semibold hidden sm:block">{userNameDisplay}</span>
+                                        <img
+                                            src={userPictureDisplay}
+                                            alt="User Profile"
+                                            className="w-10 h-10 rounded-full border-2 border-blue-500 shadow-md object-cover"
+                                            onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/40x40/CCCCCC/666666?text=User"; }}
+                                        />
+                                    </div>
+
+                                    {/* --- REDESIGNED DROPDOWN MENU --- */}
+                                    {showUserDropdown && (
+                                        <div className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-20 overflow-hidden">
+                                            {loading && <p className="p-4 text-center text-blue-500">Loading details...</p>}
+                                            {error && <p className="p-4 text-center text-red-500">{error}</p>}
+                                            
                                             {!loading && !error && userData && (
-                                                <div className="space-y-2 text-sm">
-                                                    <div className="text-center mb-3">
+                                                <>
+                                                    {/* User Info Header */}
+                                                    <div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-700">
                                                         <img
                                                             src={userData.profilePicture || "https://placehold.co/80x80/CCCCCC/666666?text=User"}
                                                             alt="User Profile"
-                                                            className="w-16 h-16 rounded-full mx-auto object-cover border-2 border-blue-400 shadow"
+                                                            className="w-12 h-12 rounded-full object-cover border-2 border-blue-400"
                                                         />
-                                                        <p className="mt-2 text-base font-semibold text-gray-800 dark:text-gray-200">{userData.fullName || 'N/A'}</p>
+                                                        <div>
+                                                            <p className="font-semibold text-gray-800 dark:text-gray-100 truncate">{userData.fullName || 'N/A'}</p>
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{userData.email || 'N/A'}</p>
+                                                        </div>
                                                     </div>
-                                                    <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Email:</span> {userData.email || 'N/A'}</p>
-                                                    <p className="text-gray-700 dark:text-gray-300 break-words"><span className="font-medium">User ID:</span> <span className="text-xs bg-gray-200 dark:bg-gray-700 p-1 rounded-md">{userId || 'N/A'}</span></p>
-                                                    {userData.message && (<p className="text-center text-gray-500 dark:text-gray-400 italic mt-4">{userData.message}</p>)}
-                                                </div>
+
+                                                    {/* Navigation Links */}
+                                                    <div className="py-2">
+                                                        <MenuItem icon={<UserIcon />} onClick={() => router.push('/Profilepage')}>Profile</MenuItem>
+                                                        <MenuItem icon={<BellIcon />} onClick={() => router.push('/notifications')}>Notifications</MenuItem>
+                                                        <MenuItem icon={<TrophyIcon />} onClick={() => router.push('/achievements')}>Achievements</MenuItem>
+                                                    </div>
+
+                                                    {/* Sign Out Action */}
+                                                    <div className="border-t border-gray-200 dark:border-gray-700 py-2">
+                                                        <MenuItem icon={<LogoutIcon />} onClick={handleLogout} disabled={loadingAuth} isDestructive>
+                                                            Sign Out
+                                                        </MenuItem>
+                                                    </div>
+                                                </>
                                             )}
                                         </div>
-                                        <div className="text-center pt-2 border-t border-gray-200 dark:border-gray-700 flex-row gap-5">
-                                            <button
-                                                onClick={handleLogout}
-                                                className="px-4 py-2 mr-5 rounded-lg bg-red-600 text-white font-semibold shadow-md hover:bg-red-700 transition-colors"
-                                                disabled={loadingAuth}
-                                            >
-                                                Sign Out
-                                            </button>
-                                            <Link href="/Profilepage" className="px-6 py-2.5 rounded-lg text-white font-semibold transition-all duration-300 ease-in-out bg-blue-500 hover:bg-blue-600 hover:text-white hover:shadow-lg">Profile</Link>
-                                        </div>
-                                        <div className="text-center pt-2 flex-row gap-5 mt-2">
-                                         <Link href="/notifications" className="bg-green-600 text-white font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-green-700 hover:text-white hover:shadow-lg">Notifications</Link>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                                    )}
+                                </div>
                         ) : (
                             <Link href="/auth/login" className="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold shadow-md hover:bg-blue-700 transition-colors">Sign In</Link>
                         )}

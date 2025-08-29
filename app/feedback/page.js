@@ -177,7 +177,7 @@ function FeedbackFormModal({ onClose, onSuccess, user }) {
                 const userDocRef = doc(db, 'userProfiles', user.uid);
                 const docSnap = await getDoc(userDocRef);
                 if (docSnap.exists() && docSnap.data().fullname) {
-                    setUsername(docSnap.data().fullname);
+                    setUsername(docSnap.data().fullName);
                 } else {
                     setUsername("Name not found in profile");
                 }
