@@ -4,7 +4,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 // --- GET a single blog post with author details ---
 export async function GET(req, { params }) {
   try {
-    const { blogId } = params;
+    const { blogId } = await params;
     if (!blogId) {
       return new Response(JSON.stringify({ error: 'Blog ID is required' }), { status: 400 });
     }
@@ -46,7 +46,7 @@ export async function GET(req, { params }) {
 // --- POST to increment view count ---
 export async function POST(req, { params }) {
     try {
-        const { blogId } = params;
+        const { blogId } = await params;
         if (!blogId) {
             return new Response(JSON.stringify({ error: 'Blog ID is required' }), { status: 400 });
         }

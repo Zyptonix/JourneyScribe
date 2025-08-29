@@ -4,7 +4,7 @@ import { auth, db } from '@/lib/firebaseClient';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, query, where, getDocs, onSnapshot, addDoc, serverTimestamp, orderBy } from 'firebase/firestore';
 import NavigationBarDark from '@/components/NavigationBarDark';
-import { useRouter } from 'next/navigation'; // <-- ADDED: import useRouter
+import { useRouter } from 'next/navigation';
 
 // --- Main Chat Page Component ---
 export default function ChatPage() {
@@ -13,6 +13,10 @@ export default function ChatPage() {
     const [selectedChat, setSelectedChat] = useState({ chatId: null, recipient: null });
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const router = useRouter();
+
+    // New state to manage authentication status for UI display
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
 
     // Auth Listener: Sets the current user and triggers user list fetch
     useEffect(() => {
@@ -21,9 +25,11 @@ export default function ChatPage() {
             if (currentUser) {
                 console.log("[Auth] User is logged in. UID:", currentUser.uid);
                 setUser(currentUser);
+                setIsAuthenticated(true); // User is authenticated, show chat UI
                 fetchAllUsers(currentUser.uid);
             } else {
-                console.log("[Auth] User is logged out.");
+                console.log("[Auth] User is logged out. Showing login button.");
+                setIsAuthenticated(false); // User is not authenticated, show login button
                 setUser(null);
                 setLoading(false);
             }
@@ -32,7 +38,7 @@ export default function ChatPage() {
             console.log("[Auth] Unsubscribing authentication listener.");
             unsubscribe();
         };
-    }, []);
+    }, []); // No router dependency needed here as we aren't using router.push directly
 
     // Fetches a list of all users from Firestore
     const fetchAllUsers = async (currentUserId) => {
@@ -59,6 +65,25 @@ export default function ChatPage() {
     const filteredUsers = allUsers.filter(u =>
         u.fullName.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    const formatDate = (timestamp) => {
+        const date = new Date(timestamp.seconds * 1000);
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+
+        if (date.toDateString() === today.toDateString()) {
+            return "Today";
+        } else if (date.toDateString() === yesterday.toDateString()) {
+            return "Yesterday";
+        } else {
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+    };
 
     // Handles the selection of a user to start/resume a chat
     const handleSelectUser = async (recipient) => {
@@ -90,6 +115,27 @@ export default function ChatPage() {
         }
     };
 
+    // Conditional rendering based on authentication status
+    if (!isAuthenticated) {
+        return (
+            <div className="min-h-screen font-inter text-white flex flex-col items-center justify-center p-4"
+                 style={{ backgroundImage: "url('/assets/chat.jpg')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                <div className="fixed inset-0 bg-black/60 z-10"></div>
+                <div className="relative z-20 text-center p-8 bg-black/40 backdrop-blur-md rounded-xl shadow-lg border border-white/20">
+                    <h1 className="text-2xl md:text-3xl font-bold mb-4 text-emerald-200">You must be logged in to chat.</h1>
+                    <p className="text-xl text-emerald-300 mb-6">Please log in to see your conversations and connect with others.</p>
+                    <button
+                        onClick={() => router.push('/auth/login')}
+                        className="bg-emerald-700 hover:bg-emerald-600 text-white font-semibold px-6 py-3 rounded-full text-lg transition-colors shadow-lg"
+                    >
+                        Go to Login
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    // Main chat UI rendered only if isAuthenticated is true
     return (
         <div className="min-h-screen font-inter text-white">
             <div className="fixed inset-0 -z-10 bg-cover bg-center" style={{ backgroundImage: "url('/assets/chat.jpg')" }}></div>
@@ -125,11 +171,11 @@ export default function ChatPage() {
                     {/* Right Side: Chat Window */}
                     <div className="w-2/3 flex flex-col">
                         {selectedChat.chatId ? (
-                            <ChatWindow chatId={selectedChat.chatId} currentUser={user} recipient={selectedChat.recipient} />
-                        ) : (
-                            <div className="flex-grow flex items-center justify-center">
-                                <p className="text-slate-400">Select a conversation to start chatting.</p>
-                            </div>
+                            <ChatWindow chatId={selectedChat.chatId} currentUser={user} recipient={selectedChat.recipient} formatDate={formatDate} />
+                                ) : (
+                                    <div className="flex-grow flex items-center justify-center">
+                                        <p className="text-slate-400">Select a conversation to start chatting.</p>
+                                    </div>
                         )}
                     </div>
                 </div>
@@ -137,6 +183,7 @@ export default function ChatPage() {
         </div>
     );
 }
+
 
 // --- User List Item Component ---
 function UserListItem({ user, onSelect, isSelected }) {
@@ -152,7 +199,7 @@ function UserListItem({ user, onSelect, isSelected }) {
 }
 
 // --- Chat Window Component ---
-function ChatWindow({ chatId, currentUser, recipient }) {
+function ChatWindow({ chatId, currentUser, recipient, formatDate }) {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const messagesEndRef = useRef(null);
@@ -231,21 +278,38 @@ function ChatWindow({ chatId, currentUser, recipient }) {
                 {/* --- ADDED: Check Profile Button --- */}
                 <button
                     onClick={() => router.push(`/Profilepage/${recipient.id}`)}
-                    className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-4 py-2 rounded-lg text-sm transition-colors ml-auto"
+                    className="bg-teal-700 hover:bg-teal-600 text-white font-semibold px-4 py-2 rounded-lg text-sm transition-colors ml-auto"
                 >
                     Check Profile
                 </button>
             </div>
             <div className="flex-grow p-4 overflow-y-auto">
                 <div className="space-y-4">
-                    {messages.map(msg => (
-                        <div key={msg.id} className={`flex ${msg.senderId === currentUser.uid ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-xs md:max-w-md p-3 rounded-2xl ${msg.senderId === currentUser.uid ? 'bg-emerald-600 rounded-br-none' : 'bg-slate-600 rounded-bl-none'}`}>
-                                <p className="text-lg text-slate-100">{msg.text}</p>
-                                <p className="text-xs text-slate-200 mt-1 text-right">{msg.createdAt ? new Date(msg.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Sending...'}</p>
-                            </div>
-                        </div>
-                    ))}
+                    {messages.map((msg, index) => {
+                        const showDateSeparator =
+                            index === 0 ||
+                            (msg.createdAt &&
+                                messages[index - 1].createdAt &&
+                                formatDate(msg.createdAt) !== formatDate(messages[index - 1].createdAt));
+
+                        return (
+                            <React.Fragment key={msg.id}>
+                                {showDateSeparator && (
+                                    <div className="flex justify-center my-4">
+                                        <span className="bg-slate-700 text-sm px-4 py-1 rounded-full text-slate-300">
+                                            {formatDate(msg.createdAt)}
+                                        </span>
+                                    </div>
+                                )}
+                                <div className={`flex ${msg.senderId === currentUser.uid ? 'justify-end' : 'justify-start'}`}>
+                                    <div className={`max-w-xs md:max-w-md p-3 rounded-2xl ${msg.senderId === currentUser.uid ? 'bg-emerald-600 rounded-br-none' : 'bg-slate-600 rounded-bl-none'}`}>
+                                        <p className="text-lg text-slate-100">{msg.text}</p>
+                                        <p className="text-xs text-slate-200 mt-1 text-right">{msg.createdAt ? new Date(msg.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Sending...'}</p>
+                                    </div>
+                                </div>
+                            </React.Fragment>
+                        );
+                    })} 
                     <div ref={messagesEndRef} />
                 </div>
             </div>
