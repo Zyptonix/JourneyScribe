@@ -1,11 +1,24 @@
 import { getAmadeusAccessToken } from '@/lib/amadeusToken';
 import { db, adminAuth } from '@/lib/firebaseAdmin';
 
-// --- Helper function to format dates and times for the email ---
+// --- Helper function to get user notification preferences ---
+async function getUserNotificationPreferences(userId) {
+    if (!userId) return {};
+    try {
+        const userProfileRef = db.collection('userProfiles').doc(userId);
+        const doc = await userProfileRef.get();
+        if (!doc.exists) return {};
+        return doc.data().notificationPreferences || {};
+    } catch (error) {
+        console.error(`Error fetching notification preferences for user ${userId}:`, error);
+        return {};
+    }
+}
+
+// --- Helper function to format and send the flight confirmation email ---
 const formatDate = (dateTime) => new Date(dateTime).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 const formatTime = (dateTime) => new Date(dateTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
 
-// --- Helper function to send the flight confirmation email ---
 async function sendFlightConfirmationEmail(bookingData) {
     const primaryTraveler = bookingData.data?.travelers?.[0];
     const flightOffer = bookingData.data?.flightOffers?.[0];
@@ -17,11 +30,7 @@ async function sendFlightConfirmationEmail(bookingData) {
     }
 
     const subject = `Your Flight Booking is Confirmed: PNR ${confirmationId}`;
-    
-    // Create a list of travelers
     const travelerList = bookingData.data.travelers.map(t => `<li>${t.name.firstName} ${t.name.lastName}</li>`).join('');
-
-    // Create the itinerary details
     const itineraryDetails = flightOffer.itineraries.map((itinerary, index) => {
         const header = index === 0 ? '<h4>Outbound Flight</h4>' : '<h4>Return Flight</h4>';
         const segments = itinerary.segments.map(segment => `
@@ -32,7 +41,7 @@ async function sendFlightConfirmationEmail(bookingData) {
             </p>
         `).join('');
         return header + segments;
-    }).join('<hr>');
+    }).join('<hr style="border-top: 1px solid #ddd; margin: 1em 0;">');
 
     const htmlContent = `
         <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
@@ -53,7 +62,6 @@ async function sendFlightConfirmationEmail(bookingData) {
 
     try {
         const apiUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-        
         await fetch(`${apiUrl}/api/send-email`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -63,11 +71,11 @@ async function sendFlightConfirmationEmail(bookingData) {
                 htmlContent: htmlContent,
             }),
         });
+        console.log(`✅ Successfully sent flight confirmation email to ${primaryTraveler.contact.emailAddress}`);
     } catch (emailError) {
-        console.error("Failed to send flight confirmation email:", emailError);
+        console.error("🔴 Failed to send flight confirmation email:", emailError);
     }
 }
-
 
 export async function POST(request) {
     try {
@@ -87,10 +95,7 @@ export async function POST(request) {
         const { flightOffer, travelers } = body;
 
         if (!flightOffer || !travelers || travelers.length === 0) {
-            return new Response(JSON.stringify({ error: 'Missing flight offer or traveler information.' }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' },
-            });
+            return new Response(JSON.stringify({ error: 'Missing flight offer or traveler information.' }), { status: 400 });
         }
 
         const token = await getAmadeusAccessToken();
@@ -117,7 +122,7 @@ export async function POST(request) {
                             }]
                         },
                     };
-                    if (traveler.passport && traveler.passport.number && traveler.passport.expiryDate && traveler.passport.issuanceCountry && traveler.passport.nationality) {
+                    if (traveler.passport && traveler.passport.number) {
                         travelerData.documents = [{
                             documentType: 'PASSPORT',
                             number: traveler.passport.number,
@@ -145,12 +150,7 @@ export async function POST(request) {
 
         if (!bookingResponse.ok) {
             console.error("Amadeus Booking Error:", bookingData);
-            console.error("Payload Sent:", JSON.stringify(payload, null, 2));
-            
-            return new Response(JSON.stringify({ error: bookingData.errors || 'Failed to create flight order.' }), {
-                status: bookingResponse.status,
-                headers: { 'Content-Type': 'application/json' },
-            });
+            return new Response(JSON.stringify({ error: bookingData.errors || 'Failed to create flight order.' }), { status: bookingResponse.status });
         }
 
         const bookingRef = bookingData?.data?.associatedRecords?.[0]?.reference;
@@ -165,7 +165,7 @@ export async function POST(request) {
                 };
 
                 if (uid) {
-                    await db.collection("userProfiles").doc(uid).collection("bookings").doc(bookingRef).set(dataToSave);
+                    await db.collection("userProfiles").doc(uid).collection("flightBookings").doc(bookingRef).set(dataToSave);
                 } else {
                     await db.collection("flightBookings").doc(bookingRef).set(dataToSave);
                 }
@@ -176,9 +176,48 @@ export async function POST(request) {
             console.error("Firestore Save Error:", firestoreErr);
         }
 
-        // --- SEND CONFIRMATION EMAIL ---
-        await sendFlightConfirmationEmail(bookingData);
-        // --- END OF EMAIL LOGIC ---
+        // --- NOTIFICATION LOGIC (DEFAULT-ON) ---
+        if (uid) {
+            console.log(`✅ User is logged in. Starting notification process for user: ${uid}`);
+            const preferences = await getUserNotificationPreferences(uid);
+            console.log("✅ User preferences loaded:", preferences);
+            
+            // 1. Check EMAIL preference
+            if (preferences.flight_booking_email !== false) {
+                console.log("📬 Flight email preference is NOT explicitly false. Sending email...");
+                await sendFlightConfirmationEmail(bookingData);
+            } else {
+                console.log("❌ Flight email preference is set to false. Skipping email.");
+            }
+
+            // 2. Check IN-APP preference
+            if (preferences.flight_booking_inapp !== false) {
+                console.log("📱 Flight in-app preference is NOT explicitly false. Creating notification...");
+                const apiUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+                try {
+                    await fetch(`${apiUrl}/api/notifications/inapp`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userId: uid,
+                            title: 'Flight Booked!',
+                            message: `Your booking with reference ${bookingRef} is confirmed.`,
+                            link: `/bookings`, // Assumes a confirmation page exists
+                        }),
+                    });
+                    console.log("✅ Successfully sent request to create in-app notification for flight.");
+                } catch (inAppError) {
+                    console.error("🔴 Failed to create in-app notification for flight:", inAppError);
+                }
+            } else {
+                console.log("❌ Flight in-app preference is set to false. Skipping in-app notification.");
+            }
+        } else {
+            // For guest users, still send the confirmation email
+            console.log("👤 User is not logged in (guest booking). Sending email to primary traveler.");
+            await sendFlightConfirmationEmail(bookingData);
+        }
+        // --- END OF NOTIFICATION LOGIC ---
 
         return new Response(JSON.stringify(bookingData), {
             status: 200,
@@ -187,9 +226,6 @@ export async function POST(request) {
 
     } catch (err) {
         console.error('Booking API Route Error:', err.message);
-        return new Response(JSON.stringify({ error: 'An internal server error occurred.' }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' },
-        });
+        return new Response(JSON.stringify({ error: 'An internal server error occurred.' }), { status: 500 });
     }
 }

@@ -1,73 +1,83 @@
-// app/api/notifications/inapp/route.js
+// File: app/api/notifications/inapp/route.js
 
-// REMOVED: No longer need client-side Firestore functions
-// import { collection, query, getDocs, limit, startAfter, doc, getDoc } from 'firebase/firestore'; 
-
-// CORRECT: Import the Admin SDK instances
 import { db, adminAuth } from '@/lib/firebaseAdmin';
+import { FieldValue } from 'firebase-admin/firestore';
+import { NextResponse } from 'next/server';
 
+// --- POST: Creates a new in-app notification ---
+export async function POST(request) {
+    try {
+        // Note: In a server-to-server call like this, we trust the caller.
+        // We get the userId from the body instead of an auth token.
+        const { userId, title, message, link, type } = await request.json();
+
+        if (!userId || !title || !message) {
+            return new NextResponse(JSON.stringify({ error: 'Missing required fields: userId, title, message' }), { status: 400 });
+        }
+
+        // CORRECT PATH: The path the dropdown component is listening to.
+        const notificationRef = db.collection('userProfiles').doc(userId).collection('inapp');
+
+        await notificationRef.add({
+            title,
+            message,
+            link: link || null, // Optional link
+            type: type || 'general', // Optional type for categorization
+            read: false, // CRITICAL: Always create notifications as unread
+            timestamp: FieldValue.serverTimestamp(), // Use server timestamp for correct ordering
+        });
+
+        return NextResponse.json({ success: true, message: 'Notification created.' });
+
+    } catch (error) {
+        console.error('Error creating in-app notification:', error);
+        return new NextResponse(JSON.stringify({ error: 'Failed to create notification.' }), { status: 500 });
+    }
+}
+
+
+// --- GET: Fetches a list of notifications for the main notifications page ---
 export async function GET(request) {
-    const { searchParams } = new URL(request.url);
-    const limitCount = parseInt(searchParams.get('limit') || '10', 10);
-    const lastDocId = searchParams.get('lastDocId');
-
     let userId;
     try {
         const authorizationHeader = request.headers.get('Authorization');
-        if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
+        if (!authorizationHeader?.startsWith('Bearer ')) {
             throw new Error('Authorization header is missing or malformed.');
         }
         const idToken = authorizationHeader.split('Bearer ')[1];
         const decodedToken = await adminAuth.verifyIdToken(idToken);
         userId = decodedToken.uid;
-
     } catch (authError) {
         console.error("Authentication error:", authError.message);
-        return new Response(JSON.stringify({ error: 'Authentication failed.' }), { status: 401 });
+        return new NextResponse(JSON.stringify({ error: 'Authentication failed.' }), { status: 401 });
     }
 
     try {
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        // CORRECT PATH: The same path we write to in the POST function.
+        const notificationsCollectionRef = db.collection('userProfiles').doc(userId).collection('inapp');
         
-        // 1. Get collection reference using Admin SDK syntax
-        const notificationsCollectionRef = db.collection(`artifacts/${appId}/users/${userId}/notifications`);
-
-        // 2. Create the base query using chainable Admin SDK methods
-        // NOTE: You need a 'timestamp' field in your documents for this to work.
-        // If you don't have one, you can order by another field or remove orderBy.
-        let q = notificationsCollectionRef.orderBy('timestamp', 'desc');
-
-        // 3. Handle pagination if lastDocId is provided
-        if (lastDocId) {
-            const lastDocSnapshot = await notificationsCollectionRef.doc(lastDocId).get();
-            if (!lastDocSnapshot.exists) {
-                return new Response(JSON.stringify({ message: 'Last document not found.' }), { status: 404 });
-            }
-            q = q.startAfter(lastDocSnapshot);
-        }
-
-        // 4. Add the limit and execute the query with .get()
-        const querySnapshot = await q.limit(limitCount).get();
+        // This query fetches the most recent notifications first.
+        const q = notificationsCollectionRef.orderBy('timestamp', 'desc').limit(20); // Limit to 20 for the page
+        const querySnapshot = await q.get();
 
         if (querySnapshot.empty) {
-            return new Response(JSON.stringify({ notifications: [], hasMore: false, lastDocId: null }), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return NextResponse.json({ notifications: [] });
         }
         
-        const notifications = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        const hasMore = notifications.length === limitCount;
-        const newLastDocId = hasMore ? querySnapshot.docs[querySnapshot.docs.length - 1].id : null;
-
-        return new Response(JSON.stringify({ notifications, hasMore, lastDocId: newLastDocId }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' }
+        const notifications = querySnapshot.docs.map(doc => {
+            const data = doc.data();
+            return { 
+                id: doc.id, 
+                ...data,
+                // Convert Firestore timestamp to a serializable format for the client
+                timestamp: data.timestamp.toDate().toISOString(),
+            };
         });
+
+        return NextResponse.json({ notifications });
 
     } catch (error) {
         console.error('Error fetching notifications:', error);
-        return new Response(JSON.stringify({ error: 'Failed to fetch notifications.' }), { status: 500 });
+        return new NextResponse(JSON.stringify({ error: 'Failed to fetch notifications.' }), { status: 500 });
     }
 }

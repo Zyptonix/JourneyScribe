@@ -147,7 +147,7 @@ export default function NavigationBar() {
                         <div className="hidden md:flex items-center space-x-2">
                             
                             {/* --- BOOKING DROPDOWN --- */}
-                            <div className="relative" ref={bookingDropdownRef}>
+                            <div className="relative " ref={bookingDropdownRef}>
                                 <button 
                                     onClick={() => setShowBookingDropdown(prev => !prev)}
                                     className="text-slate-200 font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg flex items-center"
@@ -156,7 +156,7 @@ export default function NavigationBar() {
                                     <svg className={`w-4 h-4 ml-1 transition-transform duration-200 ${showBookingDropdown ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                 </button>
                                 {showBookingDropdown && (
-                                    <div className="absolute top-full mt-4 w-48 bg-gray-800/[0.8] backdrop-blur-md rounded-lg shadow-xl border border-blue-700 z-30">
+                                    <div className="absolute top-full mt-4 w-48 bg-gray-800 backdrop-blur-md rounded-lg shadow-xl border border-blue-700 z-30">
                                         <div className="py-2">
                                             <Link href="/flight/search" className="block px-4 py-2 text-slate-200 hover:bg-blue-500 hover:text-white transition-colors font-semibold">Flights</Link>
                                             <Link href="/hotel/search" className="block px-4 py-2 text-slate-200 hover:bg-blue-500 hover:text-white transition-colors font-semibold">Hotels</Link>
@@ -176,7 +176,7 @@ export default function NavigationBar() {
                                     <svg className={`w-4 h-4 ml-1 transition-transform duration-200 ${showTripsDropdown ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                 </button>
                                 {showTripsDropdown && (
-                                    <div className="absolute top-full mt-4 w-48 bg-gray-800/[0.8] backdrop-blur-md rounded-lg shadow-xl border border-blue-700 z-30">
+                                    <div className="absolute top-full mt-4 w-48 bg-gray-800 backdrop-blur-md rounded-lg shadow-xl border border-blue-700 z-30">
                                         <div className="py-2">
                                             <Link href="/travel-tools" className="block px-4 py-2 text-slate-200 hover:bg-blue-500 hover:text-white transition-colors font-semibold">Travel tools</Link> 
                                             <Link href="/trip-documents" className="block px-4 py-2 text-slate-200 hover:bg-blue-500 hover:text-white transition-colors font-semibold">Trip Documents</Link>
@@ -196,7 +196,7 @@ export default function NavigationBar() {
                                     <svg className={`w-4 h-4 ml-1 transition-transform duration-200 ${showBlogsDropdown ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                 </button>
                                 {showBlogsDropdown && (
-                                    <div className="absolute top-full mt-4 w-48 bg-gray-800/[0.8] backdrop-blur-md rounded-lg shadow-xl border border-blue-700 z-30">
+                                    <div className="absolute top-full mt-4 w-48 bg-gray-800 backdrop-blur-md rounded-lg shadow-xl border border-blue-700 z-30">
                                         <div className="py-2">
                                             <Link href="/blog" className="block px-4 py-2 text-slate-200 hover:bg-blue-500 hover:text-white transition-colors font-semibold">Blogs</Link>
                                             <Link href="/feedback" className="block px-4 py-2 text-slate-200 hover:bg-blue-500 hover:text-white transition-colors font-semibold">Feedback</Link>
@@ -215,7 +215,7 @@ export default function NavigationBar() {
                                     <svg className={`w-4 h-4 ml-1 transition-transform duration-200 ${showPlanningDropdown ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                 </button>
                                 {showPlanningDropdown && (
-                                    <div className="absolute top-full mt-4 w-48 bg-gray-800/[0.8] backdrop-blur-md rounded-lg shadow-xl border border-blue-700 z-30">
+                                    <div className="absolute top-full mt-4 w-48 bg-gray-800 backdrop-blur-md rounded-lg shadow-xl border border-blue-700 z-30">
                                         <div className="py-2">
                                             <Link href="/packing" className="block px-4 py-2 text-slate-200 hover:bg-blue-500 hover:text-white transition-colors font-semibold">Packing</Link>
                                             <Link href="/itinerary" className="block px-4 py-2 text-slate-200 hover:bg-blue-500 hover:text-white transition-colors font-semibold">Itinerary</Link>

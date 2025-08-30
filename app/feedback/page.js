@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import CitySearchInput from '../../components/CitySearchInput';
+import CitySearchInput from '../../components/CitySearchInputgeo';
 import { auth, db } from '../../lib/firebaseClient';
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
@@ -163,10 +163,16 @@ function ReviewDetailsModal({ location, reviews, onClose }) {
     );
 }
 
+// Replace the existing FeedbackFormModal function with this one
+
 function FeedbackFormModal({ onClose, onSuccess, user }) {
     const [location, setLocation] = useState("");
     const [username, setUsername] = useState("Loading your name...");
     const [rating, setRating] = useState(5);
+    
+    // NEW: State to manage the hover effect for the stars
+    const [hoverRating, setHoverRating] = useState(0);
+
     const [comment, setComment] = useState("");
     const [message, setMessage] = useState("");
     const [loading, setLoading] = useState(false);
@@ -176,7 +182,7 @@ function FeedbackFormModal({ onClose, onSuccess, user }) {
             const fetchUserProfile = async () => {
                 const userDocRef = doc(db, 'userProfiles', user.uid);
                 const docSnap = await getDoc(userDocRef);
-                if (docSnap.exists() && docSnap.data().fullname) {
+                if (docSnap.exists() && docSnap.data().fullName) {
                     setUsername(docSnap.data().fullName);
                 } else {
                     setUsername("Name not found in profile");
@@ -193,6 +199,7 @@ function FeedbackFormModal({ onClose, onSuccess, user }) {
             return;
         }
         setLoading(true);
+        // The API call remains the same, as 'rating' is still a number
         const res = await fetch("/api/feedback", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -202,6 +209,7 @@ function FeedbackFormModal({ onClose, onSuccess, user }) {
         if(data.success) {
             setMessage("✅ Success! Your feedback has been submitted.");
             onSuccess();
+
             setTimeout(() => onClose(), 1500);
         } else {
             setMessage(`❌ Error: ${data.message}`);
@@ -210,7 +218,7 @@ function FeedbackFormModal({ onClose, onSuccess, user }) {
     };
 
     return (
-         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-lg">
                 <header className="p-5 border-b border-slate-700 flex justify-between items-center">
                     <h2 className="text-2xl font-bold">Share Your Experience</h2>
@@ -221,18 +229,38 @@ function FeedbackFormModal({ onClose, onSuccess, user }) {
                         value={location} 
                         onQueryChange={setLocation} 
                         placeholder="Enter Location (e.g. Paris)" 
-                        onCitySelect={() => {}}
+                        onCitySelect={(city) => setLocation(`${city.name} (${city.iataCode})`)}
                     />
                     <div className="w-full p-3 bg-slate-700/50 text-slate-300 rounded-lg border border-slate-600">
                         Posting as: <span className="font-semibold text-white">{username}</span>
                     </div>
-                    <select value={rating} onChange={e => setRating(Number(e.target.value))} className="w-full p-3 bg-slate-700 text-white rounded-lg border border-slate-600 focus:ring-cyan-500 focus:border-cyan-500 appearance-none">
-                        <option value={5}>⭐️⭐️⭐️⭐️⭐️ Excellent</option>
-                        <option value={4}>⭐️⭐️⭐️⭐️ Very Good</option>
-                        <option value={3}>⭐️⭐️⭐️ Good</option>
-                        <option value={2}>⭐️⭐️ Fair</option>
-                        <option value={1}>⭐️ Poor</option>
-                    </select>
+
+                    {/* --- REPLACED <select> WITH INTERACTIVE STARS --- */}
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-300 mb-2">Your Rating</label>
+                        <div 
+                            className="flex items-center gap-1"
+                            onMouseLeave={() => setHoverRating(0)} // Reset hover when mouse leaves the container
+                        >
+                            {[...Array(5)].map((_, index) => {
+                                const starValue = index + 1;
+                                return (
+                                    <button
+                                        type="button" // Important to prevent form submission
+                                        key={starValue}
+                                        className="cursor-pointer"
+                                        onClick={() => setRating(starValue)}
+                                        onMouseEnter={() => setHoverRating(starValue)}
+                                    >
+                                        <StarIcon 
+                                            filled={(hoverRating || rating) >= starValue}
+                                        />
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                    
                     <textarea placeholder="Write your feedback..." value={comment} onChange={e => setComment(e.target.value)} rows="4" className="w-full p-3 bg-slate-700 text-white rounded-lg border border-slate-600 focus:ring-cyan-500 focus:border-cyan-500" />
                     <button type="submit" disabled={loading || username.includes('Loading')} className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 font-semibold rounded-lg shadow-lg hover:opacity-90 transition-opacity disabled:opacity-50">
                         {loading ? "Submitting..." : "Submit Feedback"}
@@ -240,6 +268,6 @@ function FeedbackFormModal({ onClose, onSuccess, user }) {
                     {message && <p className={`text-center text-sm ${message.includes('Success') ? 'text-green-400' : 'text-red-400'}`}>{message}</p>}
                 </form>
             </div>
-         </motion.div>
+        </motion.div>
     );
 }

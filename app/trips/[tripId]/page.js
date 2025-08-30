@@ -4,10 +4,9 @@ import React, { Suspense, useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebaseClient.js';
-import { onAuthStateChanged, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
-import { doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, onSnapshot, getDoc, query, collection, where, updateDoc } from 'firebase/firestore';
 import NavigationBarDark from '@/components/NavigationBarDark';
-
 // --- Helper Components ---
 const UserAvatar = ({ userId }) => {
     const [user, setUser] = useState(null);
@@ -42,25 +41,13 @@ const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 const currencyOptions = ['BDT', 'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD'];
 
-// --- New Helper Function to Calculate Duration ---
-const calculateDurationInDays = (start, end) => {
-    if (!start || !end) return '';
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || endDate < startDate) {
-        return 'Invalid dates';
-    }
-    // Calculate difference in time
-    const diffTime = Math.abs(endDate - startDate);
-    // Convert time difference to days and add 1 to make it inclusive
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    return `${diffDays} day${diffDays !== 1 ? 's' : ''}`;
-};
+
 
 
 export default function TripDetailsPage({ params }) {
     const [userId, setUserId] = useState(null);
     const [trip, setTrip] = useState(null);
+    const [user, setUser] = useState(null); // Full user object for tokens
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [requestingUsersData, setRequestingUsersData] = useState([]);
@@ -81,20 +68,10 @@ export default function TripDetailsPage({ params }) {
     const { tripId } = use(params);
 
     useEffect(() => {
-        const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                setUserId(user.uid);
-                const blogsQuery = query(collection(db, 'blogs'), where("authorId", "==", user.uid));
-                onSnapshot(blogsQuery, (snapshot) => {
-                    setMyBlogs(snapshot.docs.map(doc => ({ id: doc.id, title: doc.data().title })));
-                });
-            } else if (initialAuthToken) {
-                try {
-                    const userCredential = await signInWithCustomToken(auth, initialAuthToken);
-                    setUserId(userCredential.user.uid);
-                } catch (error) { console.error('Error signing in:', error); }
-            } else {
-                signInAnonymously(auth);
+        const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+            setUser(currentUser);
+            if (currentUser) {
+                setUserId(currentUser.uid);
             }
         });
         return () => unsubscribeAuth();
@@ -105,35 +82,16 @@ export default function TripDetailsPage({ params }) {
         const postRef = doc(db, `artifacts/${appId}/public/data/trips`, tripId);
         const unsubscribe = onSnapshot(postRef, (doc) => {
             if (doc.exists()) {
-                const tripData = { id: doc.id, ...doc.data() };
-                setTrip(tripData);
-                setEditForm({
-                    location: tripData.location,
-                    duration: tripData.duration,
-                    description: tripData.description || '',
-                    cost: tripData.cost || '',
-                    currency: tripData.currency || 'BDT', // Retains currency from database
-                    startDate: tripData.startDate || '',
-                    endDate: tripData.endDate || ''
-                });
-            } else {
-                console.error("Trip not found!");
+                setTrip({ id: doc.id, ...doc.data() });
             }
             setLoading(false);
         });
         return () => unsubscribe();
     }, [tripId]);
 
-    // --- New useEffect to automatically calculate duration ---
-    useEffect(() => {
-        if (editForm.startDate && editForm.endDate) {
-            const newDuration = calculateDurationInDays(editForm.startDate, editForm.endDate);
-            setEditForm(prevForm => ({ ...prevForm, duration: newDuration }));
-        }
-    }, [editForm.startDate, editForm.endDate]);
-    
+   // Fetches full user profiles for the pending request list
     const fetchRequestingUsers = async () => {
-        if (!trip || trip.requests.length === 0) {
+        if (!trip || !trip.requests || trip.requests.length === 0) {
             setRequestingUsersData([]);
             return;
         }
@@ -141,77 +99,127 @@ export default function TripDetailsPage({ params }) {
         const userDocs = await Promise.all(userPromises);
         setRequestingUsersData(userDocs.map(doc => ({ id: doc.id, ...doc.data() })));
     };
-
-    const handleRequestAction = async (requestUserId, action) => {
-        const postRef = doc(db, `artifacts/${appId}/public/data/trips`, tripId);
-        try {
-            if (action === 'accept') {
-                await updateDoc(postRef, { requests: arrayRemove(requestUserId), accepted: arrayUnion(requestUserId) });
-            } else {
-                await updateDoc(postRef, { requests: arrayRemove(requestUserId) });
-            }
-        } catch (error) { console.error(`Error ${action}ing request:`, error); }
-    };
-    
-    const handleRequestToJoin = async () => {
-        if (!userId) return;
-        const postRef = doc(db, `artifacts/${appId}/public/data/trips`, tripId);
-        await updateDoc(postRef, { requests: arrayUnion(userId) });
-    };
-
     const handleGoToChat = () => {
+        // Save the trip's ID so the chat page knows which conversation to open
         localStorage.setItem('selectedTripId', tripId);
+        // Navigate to the chat page
         router.push('/chat'); 
     };
 
-    const handleUpdateTrip = async (e) => {
-        e.preventDefault();
-        const postRef = doc(db, `artifacts/${appId}/public/data/trips`, tripId);
+    const handleRemoveMember = async (memberIdToRemove) => {
+        if (!user) return;
+        const memberData = await getDoc(doc(db, 'userProfiles', memberIdToRemove));
+        const memberName = memberData.exists() ? memberData.data().fullName : 'this member';
+        
+        if (!window.confirm(`Are you sure you want to remove ${memberName} from the trip?`)) {
+            return;
+        }
+
         try {
-            await updateDoc(postRef, {
-                ...editForm,
-                cost: parseFloat(editForm.cost) || 0
+            const idToken = await user.getIdToken();
+            await fetch(`/api/trips/${tripId}/remove-member`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+                body: JSON.stringify({ memberIdToRemove })
             });
-            setIsEditing(false);
+            // UI will update automatically via the onSnapshot listener
         } catch (error) {
-            console.error("Error updating trip:", error);
+            console.error('Error removing member:', error);
+            alert('Failed to remove member.');
         }
     };
+    // --- NEW: Function for a member to leave a trip ---
+    const handleLeaveTrip = async () => {
+        if (!user) return;
+        if (!window.confirm('Are you sure you want to leave this trip?')) {
+            return;
+        }
+        // We can reuse the same API, as it checks if the action taker is the member themselves
+        await handleRemoveMember(user.uid);
+    };
+    useEffect(() => {
+        // Only run this if we have a logged-in user
+        if (!userId) {
+            setMyBlogs([]); // Clear blogs if user logs out
+            return;
+        };
 
+        const blogsQuery = query(collection(db, 'blogs'), where("authorId", "==", userId));
+        const unsubscribe = onSnapshot(blogsQuery, (snapshot) => {
+            setMyBlogs(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        });
+
+        // Cleanup listener on component unmount
+        return () => unsubscribe();
+    }, [userId]); // Re-run this effect whenever the userId changes
     const handleLinkBlog = async () => {
-        if (!selectedBlogId) return;
+    if (!selectedBlogId) {
+        alert("Please select a blog post from the list first.");
+        return;
+    }
+    
+    try {
         const postRef = doc(db, `artifacts/${appId}/public/data/trips`, tripId);
-        await updateDoc(postRef, { linkedBlogId: selectedBlogId });
-        setSelectedBlogId('');
+        await updateDoc(postRef, {
+            linkedBlogId: selectedBlogId
+        });
+        setSelectedBlogId(''); // Reset the dropdown after linking
+        // You could add a success alert here if you'd like
+    } catch (error) {
+        console.error("Error linking blog post:", error);
+        alert("There was an error linking your blog post. Please try again.");
+    }
+};
+    const handleRequestAction = async (requestUserId, action) => {
+        if (!user) return;
+        try {
+            const idToken = await user.getIdToken();
+            const response = await fetch(`/api/trips/${tripId}/manage-request`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+                body: JSON.stringify({ requestUserId, action })
+            });
+            if (!response.ok) throw new Error('Failed to update request.');
+
+            // FIX: The onSnapshot listener will update the list.
+            // If this was the last request, close the modal.
+            if (trip.requests.length === 1) {
+                setIsModalOpen(false);
+            }
+        } catch (error) { 
+            console.error(`Error ${action}ing request:`, error); 
+        }
     };
     
-    const getTripStatus = (startDate, endDate) => {
-        const now = new Date();
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        
-        if (!startDate || !endDate) return { text: 'Date TBD', color: 'bg-gray-500' };
-
-        if (end < now) {
-            return { text: 'Completed', color: 'bg-gray-500' };
-        } else if (start <= now && end >= now) {
-            return { text: 'Ongoing', color: 'bg-green-500' };
-        } else {
-            return { text: 'Planned', color: 'bg-blue-500' };
+    
+    const handleRequestToJoin = async () => {
+        if (!user) {
+            alert("Please sign in to request to join a trip.");
+            return;
+        }
+        try {
+            const idToken = await user.getIdToken();
+            await fetch(`/api/trips/${tripId}/request-join`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${idToken}` }
+            });
+            // The UI will update automatically via the onSnapshot listener
+        } catch (error) {
+            console.error('Error sending join request:', error);
         }
     };
+
+    // --- The rest of your component's functions and JSX remain the same ---
+    // handleGoToChat, handleUpdateTrip, handleLinkBlog, getTripStatus, etc.
+    // The main return with all the JSX for displaying the trip...
 
     if (loading) return <div className="min-h-screen flex items-center justify-center bg-black text-white">Loading Trip...</div>;
     if (!trip) return <div className="min-h-screen flex items-center justify-center bg-black text-white">Trip not found.</div>;
-
+    // ADD THIS LINE HERE
+    const formattedCost = trip.cost ? `${trip.currency || 'USD'} ${parseFloat(trip.cost).toLocaleString()}` : 'Not Specified';
     const isOwner = userId === trip.userId;
     const isMember = trip.accepted?.includes(userId);
     const hasRequested = trip.requests?.includes(userId);
-    const status = getTripStatus(trip.startDate, trip.endDate);
-    
-    // Helper to format the cost and currency for display
-    const formattedCost = trip.cost ? `${trip.currency} ${trip.cost}` : 'Not Specified';
-
     return (
         <Suspense>
             <div className="min-h-screen font-inter text-white">
@@ -280,8 +288,18 @@ export default function TripDetailsPage({ params }) {
 
                             <div className="my-8">
                                 <h3 className="text-xl font-bold mb-4">Trip Members ({trip.accepted?.length || 0} / {trip.maxMembers})</h3>
-                                <div className="flex flex-wrap gap-4">
-                                    {trip.accepted?.map(memberId => <UserAvatar key={memberId} userId={memberId} />)}
+                                <div className="space-y-3">
+                                    {trip.accepted?.map(memberId => (
+                                        // --- MODIFIED: Member list now includes a remove button for the owner ---
+                                        <div key={memberId} className="flex items-center justify-between">
+                                            <UserAvatar userId={memberId} />
+                                            {isOwner && userId !== memberId && (
+                                                <button onClick={() => handleRemoveMember(memberId)} className="text-xs text-red-400 hover:text-red-300 hover:bg-red-500/20 px-2 py-1 rounded-md transition-colors">
+                                                    Remove
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
 
@@ -290,8 +308,8 @@ export default function TripDetailsPage({ params }) {
                                     <h3 className="text-lg font-semibold mb-2">Link Your Blog Post</h3>
                                     <div className="flex gap-2">
                                         <select value={selectedBlogId} onChange={(e) => setSelectedBlogId(e.target.value)} className="w-full p-2 rounded-lg bg-white/5 text-white border-2 border-white/30">
-                                            <option value="">Select your blog post...</option>
-                                            {myBlogs.map(blog => <option key={blog.id} value={blog.id}>{blog.title}</option>)}
+                                            <option value="" className=''>Select your blog post...</option>
+                                            {myBlogs.map(blog => <option className='bg-black' key={blog.id} value={blog.id}>{blog.title}</option>)}
                                         </select>
                                         <button onClick={handleLinkBlog} disabled={!selectedBlogId} className="px-4 py-2 text-sm font-semibold rounded-lg bg-teal-600 hover:bg-teal-700 disabled:bg-gray-500">Link</button>
                                     </div>
@@ -300,8 +318,12 @@ export default function TripDetailsPage({ params }) {
 
                             <div className="flex items-center justify-between mt-4 p-4 bg-black/20 rounded-lg">
                                 <div><p className="font-semibold">{trip.accepted?.length || 0} / {trip.maxMembers} Members</p></div>
-                                {isOwner && <button onClick={() => { fetchRequestingUsers(); setIsModalOpen(true); }} className="px-4 py-2 text-sm font-semibold rounded-lg bg-purple-600 text-white hover:bg-purple-700">Manage Requests ({trip.requests.length})</button>}
+                                {/* Logic for Join/Manage buttons remains the same */}
+                                {isOwner && <button onClick={() => { fetchRequestingUsers(); setIsModalOpen(true); }} className="px-4 py-2 text-sm font-semibold rounded-lg bg-purple-600 text-white hover:bg-purple-700">Manage Requests ({trip.requests?.length || 0})</button>}
                                 {!isOwner && !isMember && <button onClick={handleRequestToJoin} className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${hasRequested ? 'bg-yellow-500 text-black' : 'bg-green-600 text-white hover:bg-green-700'}`} disabled={hasRequested}>{hasRequested ? 'Request Sent' : 'Request to Join'}</button>}
+                                
+                                {/* --- NEW: Leave Trip button for members --- */}
+                                {isMember && !isOwner && <button onClick={handleLeaveTrip} className="px-4 py-2 text-sm font-semibold rounded-lg bg-red-600 text-white hover:bg-red-700">Leave Trip</button>}
                             </div>
                         </div>
                     </div>

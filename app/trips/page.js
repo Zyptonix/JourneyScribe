@@ -6,6 +6,7 @@ import { auth, db } from '@/lib/firebaseClient.js';
 import { onAuthStateChanged, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
 import { collection, onSnapshot, query, orderBy, where } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
+import NavigationBarDark from '@/components/NavigationBarDark';
 
 // --- Global variables ---
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -53,6 +54,7 @@ const TripPostsPage = () => {
 
     return (
         <Suspense>
+            <NavigationBarDark />
             <div className="fixed inset-0 -z-10 h-full w-full bg-cover bg-center" style={{ backgroundImage: "url('/assets/traveldocs.png')" }} />
             <div className="fixed inset-x-0 top-0 h-[100vh] bg-gradient-to-b from-black to-blue-800 opacity-40" />
 

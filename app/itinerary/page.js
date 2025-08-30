@@ -47,9 +47,7 @@ export default function ItineraryPage() {
 
     useEffect(() => {
         const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-            if (!user) {
-                await signInAnonymously(auth);
-            }
+
             setUserId(user?.uid);
             setIsAuthReady(true);
         });

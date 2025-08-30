@@ -156,7 +156,7 @@ export default function NavigationBarLight() {
                                     <svg className={`w-4 h-4 ml-1 transition-transform duration-200 ${showBookingDropdown ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                 </button>
                                 {showBookingDropdown && (
-                                    <div className="absolute top-full mt-4 w-48 bg-white/[0.5] backdrop-blur-xl rounded-lg shadow-xl border border-white/20 z-30">
+                                    <div className="absolute top-full mt-4 w-48 bg-white backdrop-blur-xl rounded-lg shadow-xl border border-white/20 z-30">
                                         <div className="py-2">
                                             <Link href="/flight/search" className="font-semibold block px-4 py-2 text-slate-800 hover:bg-blue-500 hover:text-white transition-colors">Flights</Link>
                                             <Link href="/hotel/search" className="font-semibold block px-4 py-2 text-slate-800 hover:bg-blue-500 hover:text-white transition-colors">Hotels</Link>
@@ -176,7 +176,7 @@ export default function NavigationBarLight() {
                                     <svg className={`w-4 h-4 ml-1 transition-transform duration-200 ${showTripsDropdown ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                 </button>
                                 {showTripsDropdown && (
-                                    <div className="absolute top-full mt-4 w-48 bg-white/[0.5] backdrop-blur-xl rounded-lg shadow-xl border border-white/20 z-30">
+                                    <div className="absolute top-full mt-4 w-48 bg-white backdrop-blur-xl rounded-lg shadow-xl border border-white/20 z-30">
                                         <div className="py-2">
                                             <Link href="/travel-tools" className="font-semibold block px-4 py-2 text-slate-800 hover:bg-blue-500 hover:text-white transition-colors">Travel tools</Link> 
                                             <Link href="/trip-documents" className="font-semibold block px-4 py-2 text-slate-800 hover:bg-blue-500 hover:text-white transition-colors">Trip Documents</Link>
@@ -196,7 +196,7 @@ export default function NavigationBarLight() {
                                     <svg className={`w-4 h-4 ml-1 transition-transform duration-200 ${showBlogsDropdown ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                 </button>
                                 {showBlogsDropdown && (
-                                    <div className="absolute top-full mt-4 w-48 bg-white/[0.5] backdrop-blur-xl rounded-lg shadow-xl border border-white/20 z-30">
+                                    <div className="absolute top-full mt-4 w-48 bg-white backdrop-blur-xl rounded-lg shadow-xl border border-white/20 z-30">
                                         <div className="py-2">
                                             <Link href="/blog" className="font-semibold block px-4 py-2 text-slate-800 hover:bg-blue-500 hover:text-white transition-colors">Blogs</Link>
                                             <Link href="/feedback" className="font-semibold block px-4 py-2 text-slate-800 hover:bg-blue-500 hover:text-white transition-colors">Feedback</Link>
@@ -215,7 +215,7 @@ export default function NavigationBarLight() {
                                     <svg className={`w-4 h-4 ml-1 transition-transform duration-200 ${showPlanningDropdown ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                 </button>
                                 {showPlanningDropdown && (
-                                    <div className="absolute top-full mt-4 w-48 bg-white/[0.5] backdrop-blur-xl rounded-lg shadow-xl border border-white/20 z-30">
+                                    <div className="absolute top-full mt-4 w-48 bg-white backdrop-blur-xl rounded-lg shadow-xl border border-white/20 z-30">
                                         <div className="py-2">
                                             <Link href="/packing" className="font-semibold block px-4 py-2 text-slate-800 hover:bg-blue-500 hover:text-white transition-colors">Packing</Link>
                                             <Link href="/itinerary" className="font-semibold block px-4 py-2 text-slate-800 hover:bg-blue-500 hover:text-white transition-colors">Itinerary</Link>

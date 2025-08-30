@@ -5,63 +5,75 @@ import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebas
 import { auth, db } from '@/lib/firebaseClient.js';
 import { collection, getDocs, doc, deleteDoc, getDoc } from 'firebase/firestore';
 
-// --- SVG ICONS ---
+// --- SVG ICONS (Unchanged) ---
 const ChartBarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>;
 const UsersIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-4.663M12 12a3 3 0 100-6 3 3 0 000 6z" /></svg>;
 const DocumentTextIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>;
-const CogIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12a7.5 7.5 0 0015 0m-15 0a7.5 7.5 0 1115 0m-15 0H3m18 0h-1.5m-15 0a7.5 7.5 0 1115 0m-15 0H3m18 0h-1.5m-15 0a7.5 7.5 0 1115 0m-15 0H3m18 0h-1.5" /></svg>;
+const MapIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" /></svg>;
 const ArrowLeftOnRectangleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>;
-const PencilIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>;
 const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>;
 const ShieldCheckIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.286zm0 13.036h.008v.016h-.008v-.016z" /></svg>;
 
 // --- MAIN APP COMPONENT ---
 function App() {
-  const [user, setUser] = useState(null);
-  const [idToken, setIdToken] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [currentView, setCurrentView] = useState('dashboard');
+    const [user, setUser] = useState(null);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [authStatus, setAuthStatus] = useState('loading'); // 'loading', 'unauthenticated', 'no-admin', 'admin'
+    const [currentView, setCurrentView] = useState('dashboard');
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        const token = await currentUser.getIdToken(true);
-        setIdToken(token);
-      } else {
-        setIdToken(null);
-      }
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+            if (currentUser) {
+                // Force refresh the token to get the latest claims
+                const idTokenResult = await currentUser.getIdTokenResult(true);
+                // Check for the admin custom claim
+                if (idTokenResult.claims.admin === true) {
+                    setUser(currentUser);
+                    setIsAdmin(true);
+                    setAuthStatus('admin');
+                } else {
+                    setUser(currentUser); // User is logged in, but not an admin
+                    setIsAdmin(false);
+                    setAuthStatus('no-admin');
+                }
+            } else {
+                setUser(null);
+                setIsAdmin(false);
+                setAuthStatus('unauthenticated');
+            }
+        });
+        return () => unsubscribe();
+    }, []);
 
-  const handleLogout = async () => {
-    await signOut(auth);
-  };
+    const handleLogout = async () => {
+        await signOut(auth);
+    };
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-black text-white">Loading...</div>;
-  }
+    if (authStatus === 'loading') {
+        return <div className="min-h-screen flex items-center justify-center bg-black text-white">Verifying credentials...</div>;
+    }
 
-  if (!user) {
-    return <LoginForm />;
-  }
-  
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-100 to-zinc-200 text-zinc-800 flex">
-      <Sidebar userEmail={user.email} onLogout={handleLogout} currentView={currentView} setCurrentView={setCurrentView} />
-      <main className="flex-1 p-6 sm:p-8 lg:p-10 overflow-y-auto">
-        {currentView === 'dashboard' && <DashboardView />}
-        {currentView === 'users' && <UserManagementView />}
-        {currentView === 'blogs' && <BlogManagementView />}
-        {currentView === 'setAdmin' && <SetAdminView loggedInUser={user} idToken={idToken} />}
-        {currentView === 'trips' && <div className="text-zinc-900 text-2xl">Trip Management (Coming Soon!)</div>}
-      </main>
-    </div>
-  );
-}
+    if (authStatus === 'unauthenticated') {
+        return <LoginForm />;
+    }
 
+    if (authStatus === 'no-admin') {
+        return <AccessDeniedView userEmail={user.email} onLogout={handleLogout} />;
+    }
+    
+    // Only render the admin panel if authStatus is 'admin'
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-zinc-100 to-zinc-200 text-zinc-800 flex">
+            <Sidebar userEmail={user.email} onLogout={handleLogout} currentView={currentView} setCurrentView={setCurrentView} />
+            <main className="flex-1 p-6 sm:p-8 lg:p-10 overflow-y-auto">
+                {currentView === 'dashboard' && <DashboardView />}
+                {currentView === 'users' && <UserManagementView />}
+                {currentView === 'blogs' && <BlogManagementView />}
+                {currentView === 'setAdmin' && <SetAdminView loggedInUser={user} />}
+                {currentView === 'trips' && <TripManagementView />}
+            </main>
+        </div>
+    );
 // --- CHILD COMPONENTS ---
 
 function LoginForm() {
@@ -100,14 +112,29 @@ function LoginForm() {
   );
 }
 
+function AccessDeniedView({ userEmail, onLogout }) {
+    return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-black p-4">
+            <div className="w-full max-w-md text-center">
+                <h1 className="text-3xl font-bold text-red-400 mb-4">Access Denied</h1>
+                <p className="text-zinc-300 mb-2">The account <span className="font-semibold text-white">{userEmail}</span> does not have admin privileges.</p>
+                <p className="text-zinc-400 mb-6">Please log in with an authorized admin account.</p>
+                <button onClick={onLogout} className="bg-white hover:bg-zinc-200 py-2 px-5 rounded-md font-semibold text-black transition-colors">
+                    Logout
+                </button>
+            </div>
+        </div>
+    );
+}
+
 function Sidebar({ userEmail, onLogout, currentView, setCurrentView }) {
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: <ChartBarIcon /> },
-    { id: 'users', label: 'Users', icon: <UsersIcon /> },
-    { id: 'blogs', label: 'Blogs', icon: <DocumentTextIcon /> },
-    { id: 'setAdmin', label: 'Set Admin', icon: <ShieldCheckIcon /> },
-    { id: 'trips', label: 'Trips (Soon)', icon: <CogIcon /> },
-  ];
+        { id: 'dashboard', label: 'Dashboard', icon: <ChartBarIcon /> },
+        { id: 'users', label: 'Users', icon: <UsersIcon /> },
+        { id: 'blogs', label: 'Blogs', icon: <DocumentTextIcon /> },
+        { id: 'trips', label: 'Trips', icon: <MapIcon /> },
+        { id: 'setAdmin', label: 'Set Admin', icon: <ShieldCheckIcon /> },
+    ];
 
   return (
     <aside className="w-64 bg-black border-r border-zinc-700 flex flex-col text-zinc-200">
@@ -120,12 +147,11 @@ function Sidebar({ userEmail, onLogout, currentView, setCurrentView }) {
           <button
             key={item.id}
             onClick={() => setCurrentView(item.id)}
-            disabled={item.id === 'trips'}
             className={`w-full flex items-center space-x-3 px-4 py-2 rounded-md text-left transition-colors ${
               currentView === item.id 
                 ? 'bg-zinc-800 text-white' 
                 : 'text-zinc-300 hover:bg-zinc-900'
-            } ${item.id === 'trips' ? 'opacity-50 cursor-not-allowed' : ''}`}
+            } `}
           >
             {item.icon}
             <span>{item.label}</span>
@@ -143,117 +169,95 @@ function Sidebar({ userEmail, onLogout, currentView, setCurrentView }) {
 }
 
 function DashboardView() {
-  const [stats, setStats] = useState({ totalUsers: 0, totalBlogs: 0, popularDestination: '...' });
-  const [chartData, setChartData] = useState(Array(12).fill(0));
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+    const [stats, setStats] = useState({ totalUsers: 0, totalBlogs: 0, popularDestination: '...' });
+    const [chartData, setChartData] = useState(Array(12).fill(0));
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [usersSnapshot, blogsSnapshot] = await Promise.all([
-          getDocs(collection(db, 'userProfiles')),
-          getDocs(collection(db, 'blogs'))
-        ]);
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const [usersSnapshot, blogsSnapshot] = await Promise.all([
+                    getDocs(collection(db, 'userProfiles')),
+                    getDocs(collection(db, 'blogs'))
+                ]);
 
-        const totalUsers = usersSnapshot.size;
-        const monthlySignups = Array(12).fill(0);
-        const now = new Date();
-        usersSnapshot.forEach(doc => {
-          const user = doc.data();
-          if (user.createdAt && user.createdAt.toDate) {
-            const signupDate = user.createdAt.toDate();
-            const monthDiff = (now.getFullYear() - signupDate.getFullYear()) * 12 + (now.getMonth() - signupDate.getMonth());
-            if (monthDiff >= 0 && monthDiff < 12) {
-              const index = 11 - monthDiff;
-              monthlySignups[index]++;
+                // Daily signups calculation
+                const dailySignups = Array(12).fill(0);
+                const now = new Date();
+                usersSnapshot.forEach(doc => {
+                    const user = doc.data();
+                    if (user.createdAt?.toDate) {
+                        const signupDate = user.createdAt.toDate();
+                        const dayDiff = Math.floor((now.getTime() - signupDate.getTime()) / (1000 * 60 * 60 * 24));
+                        if (dayDiff >= 0 && dayDiff < 12) {
+                            const index = 11 - dayDiff;
+                            dailySignups[index]++;
+                        }
+                    }
+                });
+                setChartData(dailySignups);
+
+                // Stats calculation (unchanged)
+                const totalUsers = usersSnapshot.size;
+                const totalBlogs = blogsSnapshot.size;
+                const locationCounts = {};
+                blogsSnapshot.forEach(doc => {
+                    const location = doc.data().location;
+                    if (location) locationCounts[location] = (locationCounts[location] || 0) + 1;
+                });
+                let maxCount = 0;
+                let popularDestinations = [];
+                for (const location in locationCounts) {
+                    const count = locationCounts[location];
+                    if (count > maxCount) {
+                        maxCount = count;
+                        popularDestinations = [location];
+                    } else if (count === maxCount) {
+                        popularDestinations.push(location);
+                    }
+                }
+                let finalDestination = 'N/A';
+                if (popularDestinations.length > 0) {
+                    finalDestination = popularDestinations[Math.floor(Math.random() * popularDestinations.length)];
+                }
+                setStats({ totalUsers, totalBlogs, popularDestination: finalDestination });
+
+            } catch (err) {
+                setError("Failed to load dashboard data.");
+            } finally {
+                setLoading(false);
             }
-          }
-        });
-        setChartData(monthlySignups);
+        };
+        fetchData();
+    }, []);
+    
+    if (error) return <p className="text-center text-red-500">{error}</p>;
+    
+    const maxChartValue = Math.max(...chartData, 1); // Avoid division by zero
 
-        const totalBlogs = blogsSnapshot.size;
-        const locationCounts = {};
-        blogsSnapshot.forEach(doc => {
-          const location = doc.data().location;
-          if (location) {
-            locationCounts[location] = (locationCounts[location] || 0) + 1;
-          }
-        });
-
-        let maxCount = 0;
-        let popularDestinations = [];
-        for (const location in locationCounts) {
-          const count = locationCounts[location];
-          if (count > maxCount) {
-            maxCount = count;
-            popularDestinations = [location];
-          } else if (count === maxCount) {
-            popularDestinations.push(location);
-          }
-        }
-
-        let finalDestination = 'N/A';
-        if (popularDestinations.length > 0) {
-          const randomIndex = Math.floor(Math.random() * popularDestinations.length);
-          finalDestination = popularDestinations[randomIndex];
-        }
-
-        setStats({ totalUsers, totalBlogs, popularDestination: finalDestination });
-
-      } catch (err) {
-        console.error("Error fetching dashboard data:", err);
-        setError("Failed to load dashboard data.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  if (error) {
-    return <p className="text-center text-red-500">{error}</p>;
-  }
-  
-  const maxChartValue = Math.max(...chartData, 50);
-
-  return (
-    <div>
-      <h1 className="text-3xl font-bold text-zinc-900 mb-8">Dashboard</h1>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg border border-zinc-200 shadow-sm">
-          <h3 className="text-zinc-500 text-sm font-medium">Total Users</h3>
-          <p className="text-3xl font-bold text-zinc-900">{loading ? '...' : stats.totalUsers.toLocaleString()}</p>
+    return (
+        <div>
+            <h1 className="text-3xl font-bold text-zinc-900 mb-8">Dashboard</h1>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                {/* Stat cards... */}
+                <div className="bg-white p-6 rounded-lg border border-zinc-200 shadow-sm"><h3 className="text-zinc-500 text-sm font-medium">Total Users</h3><p className="text-3xl font-bold text-zinc-900">{loading ? '...' : stats.totalUsers.toLocaleString()}</p></div>
+                <div className="bg-white p-6 rounded-lg border border-zinc-200 shadow-sm"><h3 className="text-zinc-500 text-sm font-medium">Total Blogs Posted</h3><p className="text-3xl font-bold text-zinc-900">{loading ? '...' : stats.totalBlogs.toLocaleString()}</p></div>
+                <div className="bg-white p-6 rounded-lg border border-zinc-200 shadow-sm"><h3 className="text-zinc-500 text-sm font-medium">Most Popular Destination</h3><p className="text-3xl font-bold text-zinc-900">{loading ? '...' : stats.popularDestination}</p></div>
+            </div>
+            <div className="bg-white p-6 rounded-lg border border-zinc-200 shadow-sm">
+                <h3 className="text-lg font-semibold text-zinc-900 mb-4">User Sign-ups (Last 12 Days)</h3>
+                {loading ? <div className="h-64 flex items-center justify-center text-zinc-500">Loading chart...</div> :
+                    <div className="h-64 flex items-end space-x-2" title="From 11 days ago to today">
+                        {chartData.map((value, index) => (
+                            <div key={index} className="flex-1 bg-zinc-800 rounded-t-md hover:bg-zinc-700 transition-colors" style={{ height: `${(value / maxChartValue) * 100}%` }} title={`${value} sign-ups`}></div>
+                        ))}
+                    </div>
+                }
+            </div>
         </div>
-        <div className="bg-white p-6 rounded-lg border border-zinc-200 shadow-sm">
-          <h3 className="text-zinc-500 text-sm font-medium">Total Blogs Posted</h3>
-          <p className="text-3xl font-bold text-zinc-900">{loading ? '...' : stats.totalBlogs.toLocaleString()}</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg border border-zinc-200 shadow-sm">
-          <h3 className="text-zinc-500 text-sm font-medium">Most Popular Destination</h3>
-          <p className="text-3xl font-bold text-zinc-900">{loading ? '...' : stats.popularDestination}</p>
-        </div>
-      </div>
-      <div className="bg-white p-6 rounded-lg border border-zinc-200 shadow-sm">
-        <h3 className="text-lg font-semibold text-zinc-900 mb-4">User Sign-ups (Last 12 Months)</h3>
-        {loading ? (
-          <div className="h-64 flex items-center justify-center text-zinc-500">Loading chart data...</div>
-        ) : (
-          <div className="h-64 flex items-end space-x-2" title="From 12 months ago to current month">
-            {chartData.map((value, index) => (
-              <div 
-                key={index} 
-                className="flex-1 bg-zinc-800 rounded-t-md hover:bg-zinc-700 transition-colors" 
-                style={{ height: `${(value / maxChartValue) * 100}%` }} 
-                title={`${value} sign-ups`}
-              ></div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
+    );
 }
 
 function UserManagementView() {
@@ -466,71 +470,156 @@ function BlogManagementView() {
     );
 }
 
-function SetAdminView({ loggedInUser, idToken }) {
-  const [users, setUsers] = useState([]);
-  const [usersLoading, setUsersLoading] = useState(true);
-  const [selectedUid, setSelectedUid] = useState('');
-  const [responseMessage, setResponseMessage] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+// --- NEW TRIP MANAGEMENT VIEW ---
+function TripManagementView() {
+    const [trips, setTrips] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      if (!loggedInUser) return;
-      try {
-        setUsersLoading(true);
-        const usersCollectionRef = collection(db, 'userProfiles');
-        const querySnapshot = await getDocs(usersCollectionRef);
-        const usersList = querySnapshot.docs.map(doc => ({
-          uid: doc.id,
-          ...doc.data()
-        }));
-        setUsers(usersList);
-      } catch (err) {
-        console.error("Error fetching users:", err);
-        setError('Failed to load the user list from Firestore.');
-      } finally {
-        setUsersLoading(false);
-      }
+    useEffect(() => {
+        const fetchTrips = async () => {
+            try {
+                const appId = 'default-app-id'; // Assuming a default or configured app ID
+                const tripsRef = collection(db, `artifacts/${appId}/public/data/trips`);
+                const tripSnapshot = await getDocs(tripsRef);
+                const tripsList = tripSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                const authorIds = [...new Set(tripsList.map(trip => trip.userId).filter(id => id))];
+                const authorMap = new Map();
+
+                if (authorIds.length > 0) {
+                    const authorPromises = authorIds.map(id => getDoc(doc(db, 'userProfiles', id)));
+                    const authorSnapshots = await Promise.all(authorPromises);
+                    authorSnapshots.forEach(docSnap => {
+                        if (docSnap.exists()) {
+                            authorMap.set(docSnap.id, docSnap.data().fullName);
+                        }
+                    });
+                }
+
+                const tripsWithAuthors = tripsList.map(trip => ({
+                    ...trip,
+                    authorName: authorMap.get(trip.userId) || 'Unknown Author'
+                }));
+                
+                setTrips(tripsWithAuthors);
+            } catch (err) {
+                console.error("Error fetching trips:", err);
+                setError("Failed to load trip list.");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchTrips();
+    }, []);
+
+    const handleDeleteTrip = async (tripId, tripLocation) => {
+        if (!window.confirm(`Are you sure you want to delete the trip to "${tripLocation}"?`)) return;
+        try {
+            const appId = 'default-app-id';
+            const tripDocRef = doc(db, `artifacts/${appId}/public/data/trips`, tripId);
+            await deleteDoc(tripDocRef);
+            setTrips(currentTrips => currentTrips.filter(trip => trip.id !== tripId));
+            alert(`Successfully deleted trip to ${tripLocation}.`);
+        } catch (err) {
+            console.error("Error deleting trip:", err);
+            alert("Error: Could not delete the trip.");
+        }
     };
-    fetchUsers();
-  }, [loggedInUser]);
 
-  const handleSetAdmin = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    setResponseMessage('');
-    if (!idToken) {
-      setError('You must be logged in to perform this action.');
-      setLoading(false);
-      return;
-    }
-    if (!selectedUid) {
-      setError('Please select a user from the list.');
-      setLoading(false);
-      return;
-    }
-    try {
-      const response = await fetch('/api/admin/set-claim', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
-        body: JSON.stringify({ uid: selectedUid }),
-      });
-      const data = await response.json();
-      if (response.ok) {
-        const selectedUserName = users.find(u => u.uid === selectedUid)?.fullName || selectedUid;
-        setResponseMessage(data.message || `Successfully set admin claim for ${selectedUserName}`);
-        setSelectedUid('');
-      } else {
-        throw new Error(data.message || 'Failed to set admin claim.');
-      }
-    } catch (err) {
-      setError(`Error setting admin claim: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+    if (loading) return <p className="text-center text-zinc-500">Loading trips...</p>;
+    if (error) return <p className="text-center text-red-500">{error}</p>;
+
+    return (
+        <div>
+            <h1 className="text-3xl font-bold text-zinc-900 mb-8">Trip Management</h1>
+            <div className="bg-white rounded-lg border border-zinc-200 shadow-sm overflow-hidden">
+                <table className="w-full text-left">
+                    <thead className="bg-zinc-50 text-xs text-zinc-500 uppercase tracking-wider">
+                        <tr>
+                            <th className="p-4 font-semibold">Location</th>
+                            <th className="p-4 font-semibold">Author</th>
+                            <th className="p-4 font-semibold">Dates</th>
+                            <th className="p-4 font-semibold">Members</th>
+                            <th className="p-4 font-semibold">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-200">
+                        {trips.map(trip => (
+                            <tr key={trip.id} className="hover:bg-zinc-50">
+                                <td className="p-4 font-medium text-zinc-800">{trip.location || 'Untitled'}</td>
+                                <td className="p-4 text-zinc-600">{trip.authorName}</td>
+                                <td className="p-4 text-zinc-600">{trip.startDate} to {trip.endDate}</td>
+                                <td className="p-4 text-zinc-600">{trip.accepted?.length || 0}</td>
+                                <td className="p-4">
+                                    <div className="flex items-center space-x-3">
+                                        <Link href={`/trips/${trip.id}`} target="_blank" rel="noopener noreferrer" className="px-3 py-1 text-sm font-medium text-zinc-700 bg-zinc-200 hover:bg-zinc-300 rounded-md">View</Link>
+                                        <button onClick={() => handleDeleteTrip(trip.id, trip.location)} className="text-red-500 hover:text-red-700"><TrashIcon /></button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
+
+
+function SetAdminView({ loggedInUser }) {
+    const [users, setUsers] = useState([]);
+    const [usersLoading, setUsersLoading] = useState(true);
+    const [selectedUid, setSelectedUid] = useState('');
+    const [responseMessage, setResponseMessage] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        const fetchUsers = async () => {
+            if (!loggedInUser) return;
+            try {
+                setUsersLoading(true);
+                const usersCollectionRef = collection(db, 'userProfiles');
+                const querySnapshot = await getDocs(usersCollectionRef);
+                const usersList = querySnapshot.docs.map(doc => ({
+                    uid: doc.id,
+                    ...doc.data()
+                }));
+                setUsers(usersList);
+            } catch (err) {
+                setError('Failed to load the user list.');
+            } finally {
+                setUsersLoading(false);
+            }
+        };
+        fetchUsers();
+    }, [loggedInUser]);
+
+    const handleSetAdmin = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+        setResponseMessage('');
+        try {
+            const idToken = await loggedInUser.getIdToken(true);
+            const response = await fetch('/api/admin/set-claim', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+                body: JSON.stringify({ uid: selectedUid }),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Failed to set admin claim.');
+            
+            const selectedUserName = users.find(u => u.uid === selectedUid)?.fullName || selectedUid;
+            setResponseMessage(data.message || `Successfully set admin claim for ${selectedUserName}`);
+            setSelectedUid('');
+        } catch (err) {
+            setError(`Error: ${err.message}`);
+        } finally {
+            setLoading(false);
+        }
+    };
 
   return (
     <div>
@@ -585,4 +674,5 @@ function SetAdminView({ loggedInUser, idToken }) {
   );
 }
 
+}
 export default App;

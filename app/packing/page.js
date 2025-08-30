@@ -98,7 +98,7 @@ export default function PackingAssistant() {
   // --- RENDER METHOD ---
   return (
     <main className="min-h-screen w-full  text-white p-4 sm:p-8 flex items-center justify-center">
-      <div className='fixed top-0 w-full'><NavigationBarDark /></div>
+      <div className='fixed top-0 w-full z-50'><NavigationBarDark /></div>
       <div className="fixed inset-0 h-full w-full bg-cover bg-center -z-10" style={{ backgroundImage: "url('/assets/weathercng.jpg')", filter: "blur(6px) brightness(0.4)", transform: "scale(1.05)" }}></div>
       
       <div className="w-full max-w-6xl mx-auto bg-black/30 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl p-6 sm:p-8">

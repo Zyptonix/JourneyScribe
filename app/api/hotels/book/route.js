@@ -1,9 +1,29 @@
 import { getAmadeusAccessToken } from '@/lib/amadeusToken';
 import { db, adminAuth } from '@/lib/firebaseAdmin';
 
-// --- Helper function to send the confirmation email ---
+// A helper function to get user notification preferences from Firestore
+async function getUserNotificationPreferences(userId) {
+    if (!userId) {
+        console.log("getUserNotificationPreferences: No userId provided.");
+        return {};
+    }
+    try {
+        const userProfileRef = db.collection('userProfiles').doc(userId);
+        const doc = await userProfileRef.get();
+        if (!doc.exists) {
+            console.log(`getUserNotificationPreferences: No profile found for userId: ${userId}`);
+            return {}; // No profile, so return empty preferences
+        }
+        // Return the preferences map, or an empty object if it doesn't exist
+        return doc.data().notificationPreferences || {};
+    } catch (error) {
+        console.error(`Error fetching notification preferences for user ${userId}:`, error);
+        return {}; // Return empty on error to prevent crashes
+    }
+}
+
+// Helper function to send the confirmation email
 async function sendConfirmationEmail(bookingData, guestInfo) {
-    // Extract primary guest and booking details
     const primaryGuest = guestInfo[0];
     const bookingDetails = bookingData.data?.hotelBookings?.[0];
     const hotel = bookingDetails?.hotel;
@@ -11,7 +31,7 @@ async function sendConfirmationEmail(bookingData, guestInfo) {
     const confirmationId = bookingData.data?.id;
 
     if (!primaryGuest || !bookingDetails) {
-        console.error("Missing data for sending confirmation email.");
+        console.error("sendConfirmationEmail Error: Missing data for sending email.");
         return;
     }
 
@@ -33,11 +53,7 @@ async function sendConfirmationEmail(bookingData, guestInfo) {
     `;
 
     try {
-        // NOTE: For server-to-server calls, you need the full URL.
-        // In development, this would be 'http://localhost:3000'. In production,
-        // it should be your actual domain from an environment variable (e.g., process.env.NEXT_PUBLIC_APP_URL).
         const apiUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-        
         await fetch(`${apiUrl}/api/send-email`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -47,14 +63,14 @@ async function sendConfirmationEmail(bookingData, guestInfo) {
                 htmlContent: htmlContent,
             }),
         });
+        console.log(`✅ Successfully sent confirmation email to ${primaryGuest.email}`);
     } catch (emailError) {
-        // Log the error but do not throw, so the main API request doesn't fail.
-        console.error("Failed to send confirmation email:", emailError);
+        console.error("🔴 Failed to send confirmation email:", emailError);
     }
 }
 
 
-// --- Currency conversion helper (unchanged) ---
+// Currency conversion helper (unchanged)
 async function convertToBDT(amount, fromCurrency) {
     if (fromCurrency === 'BDT') {
         return parseFloat(amount).toFixed(2);
@@ -108,14 +124,10 @@ export async function POST(request) {
                     phone: guest.phone,
                     email: guest.email,
                 })),
-                travelAgent: {
-                    contact: { email: guestInfo[0]?.email || "default@email.com" }
-                },
+                travelAgent: { contact: { email: guestInfo[0]?.email || "default@email.com" } },
                 roomAssociations: [{
                     hotelOfferId: hotelOfferId,
-                    guestReferences: guestInfo.map((_, index) => ({
-                        guestReference: (index + 1).toString()
-                    }))
+                    guestReferences: guestInfo.map((_, index) => ({ guestReference: (index + 1).toString() }))
                 }],
                 payment: {
                     method: paymentDetails.method,
@@ -141,9 +153,7 @@ export async function POST(request) {
             const offer = bookingData.data?.hotelBookings?.[0]?.hotelOffer;
             if (offer?.price) {
                 const priceBDT = await convertToBDT(offer.price.total, offer.price.currency);
-                if (priceBDT) {
-                    offer.price.totalBDT = priceBDT;
-                }
+                if (priceBDT) offer.price.totalBDT = priceBDT;
             }
             
             const amadeusBookingId = bookingData.data?.id;
@@ -170,27 +180,60 @@ export async function POST(request) {
                 console.error("Critical: Amadeus booking successful but no ID returned. Firestore save skipped.");
             }
 
-            // --- SEND CONFIRMATION EMAIL ---
-            // This is called after everything else is done, just before sending the final response.
-            await sendConfirmationEmail(bookingData, guestInfo);
-            // --- END OF EMAIL LOGIC ---
+            // --- NOTIFICATION LOGIC WITH LOGGING ---
+if (uid) {
+        console.log(`✅ User is logged in. Starting notification process for user: ${uid}`);
+        const preferences = await getUserNotificationPreferences(uid);
+        console.log("✅ User preferences loaded:", preferences);
 
-            return new Response(JSON.stringify({
-                success: true,
-                amadeusResponse: bookingData
-            }), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' }
-            });
+        const hotelName = bookingData.data?.hotelBookings?.[0]?.hotel?.name || 'your hotel';
+        const confirmationId = bookingData.data?.id;
+
+        // 1. Check EMAIL preference
+        if (preferences.hotel_booking_email !== false) {
+            console.log("📬 Email preference is NOT explicitly false. Attempting to send email...");
+            await sendConfirmationEmail(bookingData, guestInfo);
+        } else {
+            console.log("❌ Email preference is set to false. Skipping email.");
+        }
+
+        // 2. Check IN-APP preference
+        if (preferences.hotel_booking_inapp !== false) {
+            console.log("📱 In-app preference is NOT explicitly false. Attempting to create in-app notification...");
+            const apiUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+            try {
+                await fetch(`${apiUrl}/api/notifications/inapp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: uid,
+                        title: 'Hotel Booked!',
+                        message: `Your booking at ${hotelName} is confirmed.`,
+                        link: `/hotel/confirmation/${confirmationId}`,
+                    }),
+                });
+                console.log("✅ Successfully sent request to create in-app notification.");
+            } catch (inAppError) {
+                console.error("🔴 Failed to create in-app notification:", inAppError);
+            }
+        } else {
+            console.log("❌ In-app preference is set to false. Skipping in-app notification.");
+        }
+    } else {
+        console.log("👤 User is not logged in (guest booking). Skipping all notifications.");
+    }
+    // --- END OF NOTIFICATION LOGIC ---
+
+    return new Response(JSON.stringify({
+        success: true,
+        amadeusResponse: bookingData
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
         } else {
             console.error("Amadeus Hotel Booking API Error:", bookingData);
             return new Response(JSON.stringify({
                 success: false,
                 error: bookingData.errors?.[0]?.detail || 'Failed to book hotel.',
-            }), {
-                status: bookingRes.status,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            }), { status: bookingRes.status, headers: { 'Content-Type': 'application/json' } });
         }
     } catch (err) {
         console.error('API Route Error (Hotel Booking):', err.message);

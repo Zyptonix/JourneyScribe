@@ -72,7 +72,13 @@ function TripChatItem({ trip, onSelect, isSelected }) {
 }
 
 // --- Unified Chat Window Component ---
+// This is the updated component for your app/chat/page.js file
+
 function ChatWindow({ chatInfo, currentUser }) {
+    // --- ADD THIS LOG TO DEBUG ---
+    // This will show us if the props are disappearing during a re-render.
+    console.log("ChatWindow Props Received:", { chatInfo, currentUser });
+
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const messagesEndRef = useRef(null);
@@ -80,7 +86,9 @@ function ChatWindow({ chatInfo, currentUser }) {
 
     const { type, id, data } = chatInfo;
 
+    // This useEffect for listening to messages is correct and remains the same
     useEffect(() => {
+        if (!id || !type) return; // Prevent running with invalid info
         let messagesRef;
         if (type === 'user') {
             messagesRef = collection(db, "chats", id, "messages");
@@ -98,30 +106,64 @@ function ChatWindow({ chatInfo, currentUser }) {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
+    // --- REVISED AND MORE STABLE handleSendMessage FUNCTION ---
     const handleSendMessage = async (e) => {
         e.preventDefault();
-        if (newMessage.trim() === '') return;
-        
-        let messagesRef;
-        if (type === 'user') {
-            messagesRef = collection(db, "chats", id, "messages");
-        } else { // type === 'trip'
-            messagesRef = collection(db, `artifacts/${appId}/public/data/trips`, id, "messages");
+        if (newMessage.trim() === '' || !currentUser) {
+            console.log("Send cancelled: Empty message or no user.");
+            return;
         }
-        
-        await addDoc(messagesRef, {
-            text: newMessage,
-            senderId: currentUser.uid,
-            createdAt: serverTimestamp(),
-        });
-        setNewMessage('');
+
+        try {
+            console.log("1. Getting auth token...");
+            const idToken = await currentUser.getIdToken();
+            console.log("2. Auth token received.");
+
+            const response = await fetch('/api/chats/send-message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${idToken}`
+                },
+                body: JSON.stringify({
+                    text: newMessage,
+                    chatId: id,
+                    chatType: type,
+                }),
+            });
+
+            console.log("3. API response received:", response.status);
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'API request failed');
+            }
+            
+            // 4. Only clear the input AFTER the message is successfully sent
+            setNewMessage('');
+            console.log("5. Message sent and input cleared successfully.");
+
+        } catch (error) {
+            console.error("🔴 Error sending message:", error);
+            // Optionally, show an error to the user here
+        }
     };
 
+    // If data is missing, the header would break. This prevents that.
+    if (!data) {
+        return (
+            <div className="flex-grow flex items-center justify-center">
+                <p className="text-slate-400">Loading chat information...</p>
+            </div>
+        );
+    }
+    
     const headerTitle = type === 'user' ? data.fullName : data.location;
     const headerImage = type === 'user' ? data.profilePicture : data.imageUrl;
 
     return (
         <>
+            {/* The JSX part remains unchanged */}
             <div className="p-4 border-b border-white/20 flex items-center gap-4">
                 <img src={headerImage || 'https://placehold.co/40x40'} alt={headerTitle} className={type === 'user' ? 'w-12 h-12 rounded-full object-cover' : 'w-12 h-12 rounded-lg object-cover'} />
                 <h2 className="text-xl font-bold">{headerTitle}</h2>
