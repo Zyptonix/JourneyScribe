@@ -168,8 +168,9 @@ const NotificationItem = ({ notification, onDelete }) => (
 // --- Main Page Export with Suspense and Layout ---
 export default function AllNotificationsPage() {
     return (
-        <div className="min-h-screen font-sans bg-cyan-200">
-            <NavigationBar />
+        <div className="min-h-screen font-sans bg-teal-300">
+            <div className='relative top-0 bg-black/10 backdrop-blur-2xl'><NavigationBar /></div>
+
             <main className="p-4 sm:p-6 lg:p-8">
                 <Suspense fallback={<div className="text-center p-10"><Spinner/></div>}>
                     <AllNotifications />
