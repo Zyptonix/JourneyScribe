@@ -30,7 +30,7 @@ export default function ItineraryPage() {
     const [userId, setUserId] = useState(null);
     const [isAuthReady, setIsAuthReady] = useState(false);
     const [isItineraryLoading, setIsItineraryLoading] = useState(true);
-
+    const [user, setUser] = useState(null); // Full user object for tokens
     const [itinerary, setItinerary] = useState([]);
     const [manualEvent, setManualEvent] = useState({ name: '', cost: '', date: '', time: '' });
     
@@ -46,9 +46,9 @@ export default function ItineraryPage() {
     const isInitialMount = useRef(true);
 
     useEffect(() => {
-        const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-
-            setUserId(user?.uid);
+        const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+            setUser(currentUser);
+            setUserId(currentUser?.uid);
             setIsAuthReady(true);
         });
         return () => unsubscribeAuth();
@@ -73,67 +73,67 @@ export default function ItineraryPage() {
         return () => unsubscribeTrips();
     }, [isAuthReady, userId]);
 
-    // Listen for changes to the selected itinerary
+    // --- MODIFIED: This useEffect now handles both Personal and Shared itineraries correctly ---
     useEffect(() => {
         if (!isAuthReady || !userId || !selectedItineraryId) return;
         
         setIsItineraryLoading(true);
-        let itineraryDocRef;
+
+        let unsubscribe;
 
         if (selectedItineraryId === 'main') {
-            itineraryDocRef = doc(db, "artifacts", "itinerary-builder-app", "users", userId, "currentItinerary", "main");
+            // --- Logic for the user's PERSONAL itinerary ---
+            console.log("Listening to PERSONAL itinerary...");
+            const pendingItemsCollection = collection(db, "artifacts", "itinerary-builder-app", "users", userId, "pendingItems");
+            const q = query(pendingItemsCollection, orderBy("addedAt", "asc"));
+            
+            unsubscribe = onSnapshot(q, (snapshot) => {
+                snapshot.docs.forEach(async (doc) => {
+                    const newItem = { id: doc.id, ...doc.data() };
+                    setItinerary(prev => [...prev.filter(item => item.id !== newItem.id), newItem]);
+                    await deleteDoc(doc.ref);
+                });
+                setIsItineraryLoading(false);
+            });
         } else {
-            itineraryDocRef = doc(db, `artifacts/${appId}/public/data/trips`, selectedItineraryId, "itinerary", "main");
+            // --- Logic for a SHARED trip itinerary ---
+            console.log(`Listening to SHARED trip itinerary: ${selectedItineraryId}`);
+            // THIS IS THE FIX: Listen to the 'itineraryItems' subcollection
+            const itineraryItemsRef = collection(db, `artifacts/${appId}/public/data/trips`, selectedItineraryId, "itineraryItems");
+            const q = query(itineraryItemsRef, orderBy("date", "asc"), orderBy("time", "asc"));
+
+            unsubscribe = onSnapshot(q, (snapshot) => {
+                const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                setItinerary(items);
+                setIsItineraryLoading(false);
+            });
         }
 
-        const unsubscribeItinerary = onSnapshot(itineraryDocRef, (doc) => {
-            setItinerary(doc.exists() ? doc.data().events || [] : []);
-            setIsItineraryLoading(false);
-        });
-
-        const pendingItemsCollection = collection(db, "artifacts", "itinerary-builder-app", "users", userId, "pendingItems");
-        const q = query(pendingItemsCollection, orderBy("addedAt", "asc"));
-        const unsubscribePending = onSnapshot(q, (snapshot) => {
-            snapshot.docs.forEach(async (doc) => {
-                const newItem = { id: doc.id, ...doc.data() };
-                setItinerary(prev => [...prev, newItem]);
-                await deleteDoc(doc.ref);
-            });
-        });
-
-        return () => {
-            unsubscribeItinerary();
-            unsubscribePending();
-        };
+        return () => unsubscribe(); // Cleanup the active listener
     }, [isAuthReady, userId, selectedItineraryId]);
 
-    // Auto-save itinerary
+    
+    // --- MODIFIED: Auto-save only for the personal itinerary ---
     const autoSaveItinerary = useCallback(async (currentItinerary) => {
-        if (!userId || isItineraryLoading || !selectedItineraryId) return;
+        if (!userId || isItineraryLoading || selectedItineraryId !== 'main') return;
         
-        let itineraryDocRef;
-        if (selectedItineraryId === 'main') {
-            itineraryDocRef = doc(db, "artifacts", "itinerary-builder-app", "users", userId, "currentItinerary", "main");
-        } else {
-            itineraryDocRef = doc(db, `artifacts/${appId}/public/data/trips`, selectedItineraryId, "itinerary", "main");
-        }
-
+        const itineraryDocRef = doc(db, "artifacts", "itinerary-builder-app", "users", userId, "currentItinerary", "main");
         try {
             await setDoc(itineraryDocRef, { events: currentItinerary });
-            console.log(`Autosaved itinerary for: ${selectedItineraryId}`);
         } catch (e) {
             console.error("Error auto-saving document: ", e);
         }
     }, [userId, isItineraryLoading, selectedItineraryId]);
     
     useEffect(() => {
-        if (isInitialMount.current || isItineraryLoading) {
+        if (isInitialMount.current || isItineraryLoading || selectedItineraryId !== 'main') {
             isInitialMount.current = false;
             return;
         }
         const handler = setTimeout(() => autoSaveItinerary(itinerary), 1500);
         return () => clearTimeout(handler);
-    }, [itinerary, autoSaveItinerary, isItineraryLoading]);
+    }, [itinerary, autoSaveItinerary, isItineraryLoading, selectedItineraryId]);
+
 
     const handleAddManualEvent = (e) => {
         e.preventDefault();
@@ -150,10 +150,27 @@ export default function ItineraryPage() {
         setManualEvent({ name: '', cost: '', date: '', time: '' });
     };
 
-    const handleRemoveFromItinerary = (id) => {
-        setItinerary(prev => prev.filter(item => item.id !== id));
+    // --- MODIFIED: Now handles both local state and secure Firestore deletion ---
+    const handleRemoveFromItinerary = async (id) => {
+        if (selectedItineraryId === 'main') {
+            // For personal itinerary, just update local state (will be auto-saved)
+            setItinerary(prev => prev.filter(item => item.id !== id));
+        } else {
+            // For shared trips, call the secure API
+            if (!user || !window.confirm("Are you sure you want to delete this item?")) return;
+            try {
+                const idToken = await user.getIdToken();
+                await fetch(`/api/itinerary/${selectedItineraryId}/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${idToken}` }
+                });
+                // UI will update automatically from the onSnapshot listener
+            } catch (err) {
+                console.error("Error deleting item:", err);
+                alert("Failed to delete item.");
+            }
+        }
     };
-
     // --- Booking Modal Logic ---
     const handleOpenBookingModal = async (type) => {
         if (!userId) return;

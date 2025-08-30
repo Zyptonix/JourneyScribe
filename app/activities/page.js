@@ -2,64 +2,71 @@
 import React, { useState, useEffect } from 'react';
 import { PlusIcon, MagnifyingGlassIcon, MapPinIcon, CalendarIcon, ClockIcon, XMarkIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
 import { db, auth } from '@/lib/firebaseClient';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
-import CitySearchInput from '@/components/CitySearchInput'; // Import the component
+import { collection, addDoc, serverTimestamp, query, where, onSnapshot } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import CitySearchInput from '@/components/CitySearchInput';
 import NavigationBarDark from '@/components/NavigationBarDark';
 
-// Helper function to strip HTML tags using the provided regex
 const stripHtml = (html) => {
     if (!html) return '';
-    const regex = /(<([^>]+)>)/gi;
-    return html.replace(regex, "");
+    return html.replace(/(<([^>]+)>)/gi, "");
 };
 
-export default function ActivitiesPage() {
-    // State for Firebase
-    const [userId, setUserId] = useState(null);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-    // State for API search
+export default function ActivitiesPage() {
+    const [userId, setUserId] = useState(null);
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
     const [keyword, setKeyword] = useState('');
-    
-    // New states for the CitySearchInput component
-    const [cityQuery, setCityQuery] = useState(''); // The text inside the search input
-    const [cityCode, setCityCode] = useState('');   // The selected IATA code
-
-    // State for the "Add to Itinerary" modal
+    const [cityQuery, setCityQuery] = useState('');
+    const [cityCode, setCityCode] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
     const [itemDateTime, setItemDateTime] = useState({ date: '', time: '' });
     
-    // Authenticate user anonymously
+    // --- NEW: State for fetching and selecting itineraries ---
+    const [myTrips, setMyTrips] = useState([]);
+    const [selectedTripId, setSelectedTripId] = useState('');
+
     useEffect(() => {
-        const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-            if (!user) {
-                await signInAnonymously(auth);
-            }
+        const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
             setUserId(user?.uid);
         });
         return () => unsubscribeAuth();
     }, []);
 
+    // --- NEW: useEffect to fetch the user's trips for the dropdown ---
+    useEffect(() => {
+        if (!userId) {
+            setMyTrips([]);
+            return;
+        }
+        // Query for trips where the user is an accepted member
+        const tripsRef = collection(db, `artifacts/${appId}/public/data/trips`);
+        const q = query(tripsRef, where("accepted", "array-contains", userId));
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const userTrips = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            // --- MODIFIED: Added a static 'Personal Itinerary' option ---
+            const personalItinerary = { id: 'main', location: 'My Personal Itinerary' };
+            setMyTrips([personalItinerary, ...userTrips]);
+        });
+        
+        return () => unsubscribe(); // Cleanup listener
+    }, [userId]);
+
     const handleSearch = async (e) => {
         e.preventDefault();
-        
         let finalCityCode = cityCode;
-
         if (!finalCityCode && cityQuery.includes('(') && cityQuery.includes(')')) {
             const match = cityQuery.match(/\(([^)]+)\)/);
-            if (match && match[1]) {
-                finalCityCode = match[1];
-            }
+            if (match?.[1]) finalCityCode = match[1];
         }
-
         if (!finalCityCode) {
             alert("Please select a city from the search results dropdown.");
             return;
         }
-        
         setIsSearching(true);
         setSearchResults([]);
         try {
@@ -76,15 +83,25 @@ export default function ActivitiesPage() {
     const handleOpenModal = (item) => {
         setSelectedItem(item);
         setItemDateTime({ date: '', time: '' });
+        setSelectedTripId(''); // Reset selected trip
         setIsModalOpen(true);
     };
 
     const handleConfirmAddToItinerary = async (e) => {
         e.preventDefault();
+        // --- MODIFIED: Added checks and logging ---
+        if (!selectedTripId) {
+            alert("Please select an itinerary to add this activity to.");
+            return;
+        }
         if (!itemDateTime.date || !itemDateTime.time || !userId) {
             alert("Please select a date and time.");
             return;
         }
+
+        console.log("--- Attempting to Add Itinerary Item ---");
+        console.log("UserID:", userId);
+        console.log("Selected TripID:", selectedTripId);
 
         const newItem = {
             ...selectedItem,
@@ -92,22 +109,32 @@ export default function ActivitiesPage() {
             time: itemDateTime.time,
             addedAt: serverTimestamp()
         };
+        console.log("Item to Add:", newItem);
 
         try {
-            const pendingItemsCollection = collection(db, "artifacts", "itinerary-builder-app", "users", userId, "pendingItems");
-            await addDoc(pendingItemsCollection, newItem);
+      // --- MODIFIED: Now handles saving to both Personal and Shared itineraries ---
+            let itineraryItemsCollection;
+            if (selectedTripId === 'main') {
+                // Path for the user's personal, temporary item list
+                itineraryItemsCollection = collection(db, "artifacts", "itinerary-builder-app", "users", userId, "pendingItems");
+            } else {
+                // Path for a specific trip's itinerary subcollection
+                itineraryItemsCollection = collection(db, `artifacts/${appId}/public/data/trips`, selectedTripId, "itineraryItems");
+            }
+            await addDoc(itineraryItemsCollection, newItem);
             
+            console.log("✅ SUCCESS: Item added to Firestore collection.");
             alert(`${selectedItem.name} has been added to your itinerary!`);
+            
             setIsModalOpen(false);
             setSelectedItem(null);
             setSearchResults(prev => prev.filter(result => result.id !== selectedItem.id));
 
         } catch (error) {
-            console.error("Error adding item to pending collection: ", error);
-            alert("Could not add item to itinerary. Please try again.");
+            console.error("🔴 FIREBASE ERROR: Error adding item to pending collection: ", error);
+            alert("Could not add item to itinerary. Check the browser console and your Firestore Security Rules.");
         }
-    };
-
+    }
     return (
         <>
             
@@ -175,14 +202,34 @@ export default function ActivitiesPage() {
 
             {/* Modal for adding date and time */}
             {isModalOpen && selectedItem && (
-                <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4">
+<div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4">
                     <div className="bg-gray-800/80 border border-white/20 rounded-2xl p-8 max-w-md w-full relative shadow-2xl">
                         <button onClick={() => setIsModalOpen(false)} className="absolute top-4 right-4 text-white/70 hover:text-white"><XMarkIcon className="h-7 w-7" /></button>
                         <h3 className="text-2xl font-bold mb-2">Add to Schedule</h3>
-                        <p className="text-white/80 mb-6">Select a date and time for <span className="font-bold text-blue-300">{selectedItem.name}</span>.</p>
+                        <p className="text-white/80 mb-6">Select an itinerary, date, and time for <span className="font-bold text-blue-300">{selectedItem.name}</span>.</p>
                         <form onSubmit={handleConfirmAddToItinerary} className="space-y-4">
-                            <div className="relative"><CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white/40" /><input type="date" value={itemDateTime.date} onChange={(e) => setItemDateTime({...itemDateTime, date: e.target.value})} required className="w-full p-3 pl-10 bg-white/10 border-2 border-white/20 rounded-lg placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400" /></div>
-                            <div className="relative"><ClockIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white/40" /><input type="time" value={itemDateTime.time} onChange={(e) => setItemDateTime({...itemDateTime, time: e.target.value})} required className="w-full p-3 pl-10 bg-white/10 border-2 border-white/20 rounded-lg placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400" /></div>
+                            
+                            {/* NEW: Itinerary dropdown */}
+                            <div>
+                                <label className="block text-sm font-medium text-white/80 mb-1">Select Itinerary</label>
+                                <select 
+                                    value={selectedTripId} 
+                                    onChange={(e) => setSelectedTripId(e.target.value)} 
+                                    required
+                                    className="w-full p-3 bg-white/10 border-2 border-white/20 rounded-lg placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                >
+                                    <option value="">-- Choose an itinerary --</option>
+                                    {myTrips.map(trip => (
+                                        // --- FIX: Added class to make dropdown option text visible ---
+                                        <option key={trip.id} value={trip.id} className="text-black bg-white">
+                                            {trip.location}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="relative"><CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white/40" /><input type="date" value={itemDateTime.date} onChange={(e) => setItemDateTime({...itemDateTime, date: e.target.value})} required className="w-full p-3 pl-10 bg-white/10 border-2 border-white/20 rounded-lg" /></div>
+                            <div className="relative"><ClockIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white/40" /><input type="time" value={itemDateTime.time} onChange={(e) => setItemDateTime({...itemDateTime, time: e.target.value})} required className="w-full p-3 pl-10 bg-white/10 border-2 border-white/20 rounded-lg" /></div>
                             <button type="submit" className="w-full flex items-center justify-center gap-2 p-3 bg-blue-600 font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors">Confirm & Add</button>
                         </form>
                     </div>
