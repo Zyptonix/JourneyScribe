@@ -317,7 +317,7 @@ export default function NavigationBar() {
                                     )}
                                 </div>
                         ) : (
-                            <Link href="/auth/login" className="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold shadow-md hover:bg-blue-700 transition-colors">Sign In</Link>
+                            <Link href="/auth/login" className="px-4 py-2 rounded-lg bg-cyan-400/50 text-white font-semibold shadow-md hover:bg-blue-700 transition-colors">Sign In</Link>
                         )}
 
                         <button className="md:hidden text-gray-700 dark:text-gray-200 focus:outline-none">
