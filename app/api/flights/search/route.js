@@ -72,7 +72,7 @@ export async function GET(req) {
       headers: { Authorization: `Bearer ${token}` }
     });
     const flightData = await flightRes.json();
-
+    console.log('Amadeus API Response:', flightData);
     if (!flightRes.ok) {
       console.error("Amadeus API Error:", flightData);
       return new Response(JSON.stringify({ error: flightData.errors?.[0]?.detail || 'Failed to fetch flights.' }), {
