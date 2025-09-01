@@ -104,8 +104,8 @@ function AllNotifications() {
     if (!user) {
         return (
             <div className="text-center p-10 bg-white shadow-md rounded-lg max-w-md mx-auto mt-20">
-                <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-                <p className="mb-6">You must be logged in to view your notifications.</p>
+                <h2 className="text-black text-2xl font-bold mb-4">Access Denied</h2>
+                <p className="text-black mb-6">You must be logged in to view your notifications.</p>
                 <button onClick={() => router.push('/auth/login')} className="bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700 transition-colors">
                     Go to Login
                 </button>
