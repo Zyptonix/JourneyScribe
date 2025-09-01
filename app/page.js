@@ -144,7 +144,7 @@ export default function HomePage() {
                 Discover destinations with personalized attraction views, powered by Google Maps. Build interactive itineraries, budget effectively, and get real-time weather updates with packing suggestions. Share plans with friends for collaborative editing.
               </p>
               <div className="flex justify-center md:justify-center gap-4">
-                <a href="/attractions" className="px-6 py-3 rounded-lg bg-purple-500 text-white font-semibold hover:bg-purple-600 transition-colors">Find Attractions</a>
+                <a href="/activities" className="px-6 py-3 rounded-lg bg-purple-500 text-white font-semibold hover:bg-purple-600 transition-colors">Find Activities</a>
 
                 {/* START OF THE CHANGE */}
                 <Link href="/itinerary" className="px-6 py-3 rounded-lg bg-pink-500 text-white font-semibold hover:bg-pink-600 transition-colors">
@@ -198,8 +198,8 @@ export default function HomePage() {
                 Share your travel stories and experiences on your personal blog. Engage with other travelers through comments and in-app chat, filtered by locations to find like-minded explorers.
               </p>
               <div className="flex justify-center md:justify-center gap-4">
-                <a href="/blogs" className="px-6 py-3 rounded-lg bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors">Start Blogging</a>
-                <a href="/chats" className="px-6 py-3 rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors">Join Chats</a>
+                <a href="/blog" className="px-6 py-3 rounded-lg bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors">Start Blogging</a>
+                <a href="/chat" className="px-6 py-3 rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors">Join Chats</a>
               </div>
             </div>
             <div className="md:w-1/2 flex justify-center items-center">
@@ -223,7 +223,7 @@ export default function HomePage() {
               </p>
               <div className="flex justify-center md:justify-center gap-4">
                 <a href="/Profilepage" className="px-6 py-3 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors">Manage Profile</a>
-                <a href="/notifications" className="px-6 py-3 rounded-lg bg-indigo-500 text-white font-semibold hover:bg-indigo-600 transition-colors">My Notifications</a>
+                <a href="/notifications/all" className="px-6 py-3 rounded-lg bg-indigo-500 text-white font-semibold hover:bg-indigo-600 transition-colors">My Notifications</a>
               </div>
             </div>
             <div className="md:w-1/2 flex justify-center items-center">
