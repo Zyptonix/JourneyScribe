@@ -115,13 +115,13 @@ export default function HomePage() {
           {/* Feature 5: Trip Management & On-the-Go Essentials */}
           <div className="rounded-xl border-green-500 border-l-2 border-t-2 p-8 mb-12 flex flex-col md:flex-row items-center gap-8 min-h-[50vh] md:min-h-[60vh]">
             <div className="md:w-1/2 text-center md:text-center">
-              <h3 className="text-2xl sm:text-4xl font-bold text-emerald-600 mb-10">Trip Management & Essentials 💼</h3>
+              <h3 className="text-2xl sm:text-4xl font-bold text-emerald-600 mb-10">Trip Management & Essentials</h3>
               <p className="text-base sm:text-2xl text-slate-700 mb-10">
                 Track your trip history, set goals, and compete with friends on leaderboards. Store tickets securely offline with advanced encryption and jot down notes. Use the in-app currency and local time converter, and get suggestions for restaurants and activities based on your current location.
               </p>
               <div className="flex justify-center md:justify-start gap-4">
-                <a href="#" className="px-6 py-3 rounded-lg bg-emerald-500 text-white font-semibold hover:bg-emerald-600 transition-colors">My Trips</a>
-                <a href="#" className="px-6 py-3 rounded-lg bg-teal-500 text-white font-semibold hover:bg-teal-600 transition-colors">Travel Tools</a>
+                <a href="/trips" className="px-6 py-3 rounded-lg bg-emerald-500 text-white font-semibold hover:bg-emerald-600 transition-colors">My Trips</a>
+                <a href="/travel-tools" className="px-6 py-3 rounded-lg bg-teal-500 text-white font-semibold hover:bg-teal-600 transition-colors">Travel Tools</a>
               </div>
             </div>
             <div className="md:w-1/2 flex justify-center items-center">
@@ -144,8 +144,8 @@ export default function HomePage() {
                 Discover destinations with personalized attraction views, powered by Google Maps. Build interactive itineraries, budget effectively, and get real-time weather updates with packing suggestions. Share plans with friends for collaborative editing.
               </p>
               <div className="flex justify-center md:justify-center gap-4">
-                <a href="#" className="px-6 py-3 rounded-lg bg-purple-500 text-white font-semibold hover:bg-purple-600 transition-colors">Find Destinations</a>
-                
+                <a href="/attractions" className="px-6 py-3 rounded-lg bg-purple-500 text-white font-semibold hover:bg-purple-600 transition-colors">Find Attractions</a>
+
                 {/* START OF THE CHANGE */}
                 <Link href="/itinerary" className="px-6 py-3 rounded-lg bg-pink-500 text-white font-semibold hover:bg-pink-600 transition-colors">
                   Build Itinerary
@@ -174,8 +174,8 @@ export default function HomePage() {
                 Access near real-time flight options from Expedia and GoZayaan, with advanced sorting. Find and book your ideal hotel stay, comparing prices and amenities to ensure the best fit for your journey.
               </p>
               <div className="flex justify-center md:justify-center gap-4">
-                <a href="#" className="px-6 py-3 rounded-lg bg-indigo-500 text-white font-semibold hover:bg-indigo-600 transition-colors">Find Flights</a>
-                <a href="#" className="px-6 py-3 rounded-lg bg-sky-500 text-white font-semibold hover:bg-sky-600 transition-colors">Book Hotels</a>
+                <a href="/flight/search" className="px-6 py-3 rounded-lg bg-indigo-500 text-white font-semibold hover:bg-indigo-600 transition-colors">Find Flights</a>
+                <a href="/hotel/search" className="px-6 py-3 rounded-lg bg-sky-500 text-white font-semibold hover:bg-sky-600 transition-colors">Book Hotels</a>
               </div>
             </div>
             <div className="md:w-1/2 flex justify-center items-center">
@@ -198,8 +198,8 @@ export default function HomePage() {
                 Share your travel stories and experiences on your personal blog. Engage with other travelers through comments and in-app chat, filtered by locations to find like-minded explorers.
               </p>
               <div className="flex justify-center md:justify-center gap-4">
-                <a href="#" className="px-6 py-3 rounded-lg bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors">Start Blogging</a>
-                <a href="#" className="px-6 py-3 rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors">Join Chats</a>
+                <a href="/blogs" className="px-6 py-3 rounded-lg bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors">Start Blogging</a>
+                <a href="/chats" className="px-6 py-3 rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors">Join Chats</a>
               </div>
             </div>
             <div className="md:w-1/2 flex justify-center items-center">
@@ -222,8 +222,8 @@ export default function HomePage() {
                 Securely create and manage your account with email/password or social logins. View and edit your profile, set travel preferences, and receive smart notifications tailored just for you. Admins get powerful tools for user and content management.
               </p>
               <div className="flex justify-center md:justify-center gap-4">
-                <a href="#" className="px-6 py-3 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors">Manage Profile</a>
-                <a href="#" className="px-6 py-3 rounded-lg bg-indigo-500 text-white font-semibold hover:bg-indigo-600 transition-colors">My Notifications</a>
+                <a href="/Profilepage" className="px-6 py-3 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors">Manage Profile</a>
+                <a href="/notifications" className="px-6 py-3 rounded-lg bg-indigo-500 text-white font-semibold hover:bg-indigo-600 transition-colors">My Notifications</a>
               </div>
             </div>
             <div className="md:w-1/2 flex justify-center items-center">
