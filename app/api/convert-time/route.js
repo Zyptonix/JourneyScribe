@@ -1,10 +1,12 @@
+// This is your full, corrected API file using moment-timezone.
 import { NextResponse } from 'next/server';
+import moment from 'moment-timezone'; // Import the new library
 
 export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const fromZone = searchParams.get('from');
     const toZone = searchParams.get('to');
-    const time = searchParams.get('time'); // "HH:MM" format, optional
+    const time = searchParams.get('time');
     const apiKey = process.env.TIMEZONEDB_API_KEY;
 
     if (!fromZone || !toZone || !apiKey) {
@@ -15,24 +17,16 @@ export async function GET(request) {
         const apiUrl = new URL('http://api.timezonedb.com/v2.1/convert-time-zone');
         apiUrl.searchParams.set('key', apiKey);
         apiUrl.searchParams.set('format', 'json');
-        apiUrl.searchParams.set('from', fromZone);
-        apiUrl.searchParams.set('to', toZone);
+        apiUrl.searchParams.set('from', fromZone); // ✨ FIX
+        apiUrl.searchParams.set('to', toZone);     // ✨ FIX
 
-        // --- NEW LOGIC TO HANDLE TIME INPUT ---
-        // If a time is provided, we need to convert it to a Unix timestamp for today's date.
+        let unixTimestamp;
         if (time) {
-            const [hours, minutes] = time.split(':');
-            const date = new Date(); // Gets today's date
-            // Set the time on the date object. Note: This uses the server's date.
-            date.setHours(parseInt(hours, 10));
-            date.setMinutes(parseInt(minutes, 10));
-            date.setSeconds(0);
-            
-            const unixTimestamp = Math.floor(date.getTime() / 1000);
+            const datePart = moment().format('YYYY-MM-DD');
+            const fullDateString = `${datePart} ${time}`;
+            unixTimestamp = moment.tz(fullDateString, fromZone).unix();
             apiUrl.searchParams.set('time', unixTimestamp);
         }
-        // If no time is provided, the API will automatically use the current time.
-        // --- END OF NEW LOGIC ---
 
         const response = await fetch(apiUrl);
         const data = await response.json();
@@ -40,25 +34,26 @@ export async function GET(request) {
         if (data.status !== 'OK') {
             throw new Error(data.message || 'Time zone conversion failed');
         }
-
-        // --- MODIFIED RESPONSE TO MATCH FRONTEND ---
-        // The TimeConverter component expects specific fields. We format them here.
+        
         const fromDateObj = new Date(data.fromTimestamp * 1000);
         const toDateObj = new Date(data.toTimestamp * 1000);
 
-        const options = { weekday: 'long', month: 'short', day: 'numeric' };
-        const timeOptions = { hour: '2-digit', minute: '2-digit' };
+        const formatTime = (date, tz) => {
+            return new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: tz, hour12: false }).format(date);
+        };
+
+        const formatDate = (date, tz) => {
+            return new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: tz }).format(date);
+        };
 
         return NextResponse.json({
             success: true,
             fromZone: data.fromZoneName,
             toZone: data.toZoneName,
-            fromTime: fromDateObj.toLocaleTimeString('en-US', { ...timeOptions, timeZone: data.fromZoneName }),
-            fromDate: fromDateObj.toLocaleDateString('en-US', { ...options, timeZone: data.fromZoneName }),
-            toTime: toDateObj.toLocaleTimeString('en-US', { ...timeOptions, timeZone: data.toZoneName }),
-            toDate: toDateObj.toLocaleDateString('en-US', { ...options, timeZone: data.toZoneName }),
-            fromTimestamp: data.fromTimestamp,
-            toTimestamp: data.toTimestamp,
+            fromTime: formatTime(fromDateObj, data.fromZoneName),
+            fromDate: formatDate(fromDateObj, data.fromZoneName),
+            toTime: formatTime(toDateObj, data.toZoneName),
+            toDate: formatDate(toDateObj, data.toZoneName),
         });
 
     } catch (error) {
