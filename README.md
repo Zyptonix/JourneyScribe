@@ -49,7 +49,7 @@ Follow these instructions to get a local copy of the project up and running for 
 
 * Node.js (v18.x or later recommended)
 * npm / yarn / pnpm
-* Access keys for any external services you use (e.g., Flight/Hotel APIs, Database credentials).
+* Credentials for Firebase, Amadeus, Brevo, and other required APIs.
 
 ### **Installation**
 
@@ -65,20 +65,42 @@ Follow these instructions to get a local copy of the project up and running for 
     ```
 
 3.  **Set up environment variables:**
-    Create a `.env` file in the root of the project and add the necessary environment variables.
+    Create a file named `.env.local` in the project root. Copy the contents below and fill in your actual credentials.
+
+    **Important:** Never commit your `.env.local` file to a public repository.
+
     ```env
-    # Example .env
-    NEXT_PUBLIC_API_BASE_URL=http://localhost:3000
+    # .env.local
 
-    # Database
-    DATABASE_URL="your_database_connection_string"
+    APP_URL="http://localhost:3000"
 
-    # Auth Secret
-    NEXTAUTH_SECRET="your_secret_for_jwt"
+    # For Firebase Client SDK (Safe to be public)
+    NEXT_PUBLIC_FIREBASE_API_KEY="YOUR_FIREBASE_API_KEY"
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your-project-id.firebaseapp.com"
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID="your-project-id"
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="your-project-id.appspot.com"
+    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="YOUR_MESSAGING_SENDER_ID"
+    NEXT_PUBLIC_FIREBASE_APP_ID="YOUR_APP_ID"
 
-    # Flight/Hotel API Keys
-    FLIGHT_API_KEY="your_flight_api_key"
-    HOTEL_API_KEY="your_hotel_api_key"
+    # For Firebase Admin SDK (Server-side only - KEEP SECRET)
+    FIREBASE_PROJECT_ID="your-project-id"
+    FIREBASE_CLIENT_EMAIL="firebase-adminsdk-xxxx@your-project-id.iam.gserviceaccount.com"
+    FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYOUR_MULTI_LINE_PRIVATE_KEY_HERE\n-----END PRIVATE KEY-----\n"
+
+    # TimeZoneDB API Key (KEEP SECRET)
+    TIMEZONEDB_API_KEY="YOUR_TIMEZONEDB_API_KEY"
+
+    # For Amadeus API (KEEP SECRET)
+    AMADEUS_API_KEY="YOUR_AMADEUS_API_KEY"
+    AMADEUS_API_SECRET="YOUR_AMADEUS_API_SECRET"
+
+    # For Brevo Email API (KEEP SECRET)
+    BREVO_API_KEY="YOUR_BREVO_API_KEY"
+    SENDER_EMAIL="your-verified-email@example.com"
+    SENDER_NAME="JourneyScribe"
+
+    # For IMGBB API (Safe to be public)
+    NEXT_PUBLIC_IMGBB_API_KEY="YOUR_IMGBB_API_KEY"
     ```
 
 4.  **Run the development server:**
