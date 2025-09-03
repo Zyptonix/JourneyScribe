@@ -1,143 +1,152 @@
 'use client';
+
 import React, { useState, useEffect } from 'react';
 import { db } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
-import NavigationBarDark from '@/components/NavigationBarDark';
+import NavigationBarLight from '@/components/NavigationBarLight';
+
+// Component for displaying user preferences as tags
+const InfoTag = ({ children }) => (
+    <span className="bg-white/10 text-blue-200 text-xs font-semibold px-2.5 py-1 rounded-full border border-white/20">
+        {children}
+    </span>
+);
 
 export default function UserProfilePage() {
     const [profileData, setProfileData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     
-    // Get the user ID from the URL parameters
-    const { userid } = useParams();
-    const router = useRouter();
+    const router = useRouter(); // For the "Go Back" button
+    const params = useParams(); // To get the dynamic route parameter
+    const { userid } = params;
 
     useEffect(() => {
-        if (!userid) {
+        if (userid) {
+            fetchUserProfile(userid);
+        } else {
+            setError("User ID not found in URL.");
             setLoading(false);
-            setError("User ID is missing from the URL.");
-            return;
         }
+    }, [userid]); // Re-run effect when the userid changes
 
-        const fetchUserProfile = async () => {
-            setLoading(true);
-            setError(null);
-            try {
-                const userProfileRef = doc(db, 'userProfiles', userid);
-                const docSnap = await getDoc(userProfileRef);
+    const fetchUserProfile = async (uid) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const userProfileRef = doc(db, 'userProfiles', uid);
+            const docSnap = await getDoc(userProfileRef);
 
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    setProfileData(data);
-                } else {
-                    setProfileData(null);
-                    setError("User profile not found.");
-                }
-            } catch (err) {
-                console.error('Error fetching user profile:', err);
-                setError('Failed to load user profile. Please try again.');
-            } finally {
-                setLoading(false);
+            if (docSnap.exists()) {
+                setProfileData(docSnap.data());
+            } else {
+                setError("User profile not found.");
+                setProfileData(null);
             }
-        };
-
-        fetchUserProfile();
-    }, [userid]);
+        } catch (err) {
+            console.error('Error fetching user profile:', err);
+            setError('Failed to load user profile. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    // Helper component for loading and error states
+    const renderStatusMessage = (message) => (
+        <div className="min-h-screen font-inter flex flex-col items-center justify-center pt-20 relative z-10 p-4">
+            <div className="w-full max-w-md bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/20 shadow-2xl text-center">
+                <p className="text-xl text-white">{message}</p>
+                 <button 
+                    onClick={() => router.back()} 
+                    className="mt-6 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors"
+                >
+                    Go Back
+                </button>
+            </div>
+        </div>
+    );
 
     if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white">
-                <p className="text-xl">Loading profile...</p>
-            </div>
-        );
+        return renderStatusMessage("Loading Profile...");
     }
-
+    
     if (error) {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 p-4 text-white">
-                <p className="text-xl text-red-400 mb-4">Error: {error}</p>
-                <button 
-                    onClick={() => router.back()}
-                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-full hover:scale-105 transition-transform"
-                >
-                    Go Back
-                </button>
-            </div>
-        );
+        return renderStatusMessage(error);
     }
-
+    
     if (!profileData) {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 p-4 text-white">
-                <p className="text-xl text-white mb-4">Profile not found for this user.</p>
-                <button 
-                    onClick={() => router.back()}
-                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-full hover:scale-105 transition-transform"
-                >
-                    Go Back
-                </button>
-            </div>
-        );
+        return renderStatusMessage("No profile data available.");
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
-            <div className="fixed top-0 w-full z-50"><NavigationBarDark /></div>
-            <div className="pt-20 flex items-center justify-center p-4 sm:p-6 lg:p-8">
-                <div className="relative p-6 sm:p-8 w-full max-w-2xl mt-18 rounded-3xl backdrop-blur-md bg-white/10 border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] animate-fade-in">
-                    <h1 className="text-3xl sm:text-4xl font-extrabold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-[#e02f75] to-[#ff5a57]">
-                        {profileData.fullName || profileData.username || 'User Profile'}
-                    </h1>
-                    <div className="flex flex-col items-center mb-6">
-                        <img
-                            src={profileData.profilePicture || "https://placehold.co/100x100/1F2937/FFFFFF?text=User"}
-                            alt="Profile"
-                            className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-white/50 shadow-xl mb-3 transform transition-transform"
-                        />
-                        <p className="text-xl font-semibold text-white">
-                            {profileData.fullName || profileData.username || 'N/A'}
-                        </p>
-                    </div>
-                    
-                    <div className="space-y-4 text-gray-300">
-                        <div className="w-full h-px bg-gradient-to-r from-transparent via-[#ff5a57] to-transparent my-6"></div>
-                        <p><span className="font-semibold text-white">Username:</span> {profileData.username || 'N/A'}</p>
-                        <p><span className="font-semibold text-white">Full Name:</span> {profileData.fullName || 'N/A'}</p>
-                        <p><span className="font-semibold text-white">Travel Styles:</span> {Array.isArray(profileData.travelStyles) && profileData.travelStyles.length > 0 ? profileData.travelStyles.join(', ') : 'N/A'}</p>
-                        <p><span className="font-semibold text-white">Interests:</span> {Array.isArray(profileData.interests) && profileData.interests.length > 0 ? profileData.interests.join(', ') : 'N/A'}</p>
-                        <p><span className="font-semibold text-white">Budget Range:</span> {profileData.budgetRange || 'N/A'}</p>
-                        <p><span className="font-semibold text-white">Dietary Restrictions:</span> {Array.isArray(profileData.dietaryRestrictions) && profileData.dietaryRestrictions.length > 0 ? profileData.dietaryRestrictions.join(', ') : 'N/A'}</p>
-                        <p>
-                            <span className="font-semibold text-white">Member Since:</span>{" "}
-                            {profileData.createdAt
-                                ? profileData.createdAt.toDate
-                                    ? profileData.createdAt.toDate().toLocaleDateString(undefined, {
-                                        year: "numeric",
-                                        month: "long",
-                                        day: "numeric"
-                                    })
-                                    : new Date(profileData.createdAt._seconds * 1000).toLocaleDateString(undefined, {
-                                        year: "numeric",
-                                        month: "long",
-                                        day: "numeric"
-                                    })
-                                : "N/A"}
-                        </p>
-                    </div>
-                    <div className="text-center mt-6">
-                        <button 
-                            onClick={() => router.back()}
-                            className="relative inline-flex items-center justify-center p-0.5 mb-2 me-2 overflow-hidden text-sm font-medium text-gray-900 rounded-full group bg-gradient-to-br from-[#6700a3] to-[#ff5a57] group-hover:from-[#6700a3] group-hover:to-[#ff5a57] hover:text-white dark:text-white focus:ring-4 focus:outline-none focus:ring-purple-200 dark:focus:ring-purple-800 transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-95"
-                        >
-                            <span className="relative px-5 py-2.5 transition-all ease-in duration-75 bg-white dark:bg-gray-900 rounded-full group-hover:bg-opacity-0">
-                                Go Back
-                            </span>
-                        </button>
+        <>
+            <div className="fixed inset-0 blur -z-10 h-full w-full bg-cover bg-center" style={{ backgroundImage: "url('/assets/profilepage.jpg')" }}></div>
+            <div className="fixed inset-x-0 top-0 h-full bg-gradient-to-b from-white-300 to-blue-900 opacity-60 -z-10"></div>
+            <div className="fixed top-0 w-full z-50"><NavigationBarLight /></div>
+
+            <div className="min-h-screen font-inter flex flex-col items-center justify-center pt-28 pb-12 px-4 relative z-10">
+                <div className="w-full max-w-4xl">
+                    <div className="bg-black/50 backdrop-blur-md rounded-2xl p-8 border border-white/20 shadow-2xl">
+                        <h1 className="text-3xl font-bold text-center text-white mb-2">JourneyScribe User Profile</h1>
+                        <p className="text-center text-white/70 mb-8">Personalized travel preferences and information.</p>
+
+                        <div className="flex flex-col md:flex-row items-center gap-8">
+                            <div className="flex-shrink-0 text-center">
+                                <img
+                                    src={profileData?.profilePicture || "https://placehold.co/150x150/1F2937/FFFFFF?text=User"}
+                                    alt="Profile"
+                                    className="w-36 h-36 rounded-full object-cover border-4 border-white/30 shadow-xl mx-auto"
+                                    onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/150x150/1F2937/FFFFFF?text=User"; }}
+                                />
+                                <button 
+                                    onClick={() => router.back()} 
+                                    className="mt-6 w-full px-6 py-3 bg-gray-500 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600 transition-colors"
+                                >
+                                    Go Back
+                                </button>
+                            </div>
+                            
+                            <div className="w-full border-t-2 md:border-t-0 md:border-l-2 border-white/20 pt-6 md:pt-0 md:pl-8">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                                    <div>
+                                        <label className="text-sm text-white/60">Full Name</label>
+                                        <p className="text-lg font-semibold text-white">{profileData?.fullName || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm text-white/60">Username</label>
+                                        <p className="text-lg font-semibold text-white">{profileData?.username || 'N/A'}</p>
+                                    </div>
+                                    <div className="col-span-2">
+                                        <label className="text-sm text-white/60">Email</label>
+                                        <p className="text-lg font-semibold text-white">{profileData?.email || 'N/A'}</p>
+                                    </div>
+                                </div>
+                                
+                                <hr className="border-white/20 my-6" />
+
+                                <div>
+                                    <h3 className="text-md font-semibold text-white mb-3">Travel Preferences</h3>
+                                    <div className="space-y-3">
+                                        <div className="flex flex-wrap gap-2 items-center">
+                                            <strong className="text-sm text-white/80 w-28">Styles:</strong>
+                                            {profileData?.travelStyles?.length > 0 ? profileData.travelStyles.map(s => <InfoTag key={s}>{s}</InfoTag>) : <InfoTag>Not set</InfoTag>}
+                                        </div>
+                                        <div className="flex flex-wrap gap-2 items-center">
+                                            <strong className="text-sm text-white/80 w-28">Interests:</strong>
+                                            {profileData?.interests?.length > 0 ? profileData.interests.map(i => <InfoTag key={i}>{i}</InfoTag>) : <InfoTag>Not set</InfoTag>}
+                                        </div>
+                                         <div className="flex flex-wrap gap-2 items-center">
+                                            <strong className="text-sm text-white/80 w-28">Budget:</strong>
+                                            {profileData?.budgetRange ? <InfoTag>{profileData.budgetRange}</InfoTag> : <InfoTag>Not set</InfoTag>}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 }
