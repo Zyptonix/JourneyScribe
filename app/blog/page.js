@@ -83,7 +83,7 @@ export default function BlogPage() {
             <div className="fixed inset-0 -z-10 bg-black/60"></div>
             <NavigationBarDark />
 
-            <header className="flex flex-col justify-center p-4 relative pt-10   pb-16">
+            <header className="flex flex-col justify-center p-4 relative pt-10  w-full  pb-16">
                 <div className="w-full max-w-8xl pl-20 pr-20 mx-auto px-2 flex justify-between items-center">
                     <div>
                         <h1 className="text-5xl md:text-6xl font-extrabold text-white">Travel Chronicles</h1>
@@ -92,7 +92,7 @@ export default function BlogPage() {
                     {user && <button onClick={() => router.push('/blog/create')} className="bg-cyan-600 hover:bg-cyan-700 px-6 py-3 rounded-lg font-semibold transition-transform hover:scale-105 self-start whitespace-nowrap hidden md:block">+ Share Your Story</button>}
                 </div>
 
-                <div className="relative w-[90vw] mx-auto h-[50vh] mt-15 flex items-center justify-center">
+                <div className="relative w-full mx-auto h-[50vh] mt-15 flex items-center justify-center">
                     {popularBlogs.map((blog, index) => (
                         <FeaturedBlogCard 
                             key={blog.id} 

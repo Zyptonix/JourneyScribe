@@ -168,7 +168,16 @@ const NotificationItem = ({ notification, onDelete }) => (
 // --- Main Page Export with Suspense and Layout ---
 export default function AllNotificationsPage() {
     return (
-        <div className="min-h-screen font-sans bg-teal-300">
+        <div className="min-h-screen font-sans  ">
+            <div
+        className="fixed inset-x-0 top-0 h-[100vh] bg-cover bg-center z-[-60]" // Changed to fixed position
+        style={{
+          backgroundImage: "url('/assets/notifications.jpg')", // Placeholder image
+          filter: "blur(5px)", // Re-add blur if desired, removed as per previous update
+          transform: "scale(1.05)" // Slightly scale to avoid blurry edges
+        }}
+      ></div>
+
             <div className='relative top-0 bg-black/10 backdrop-blur-2xl'><NavigationBar /></div>
 
             <main className="p-4 sm:p-6 lg:p-8">
