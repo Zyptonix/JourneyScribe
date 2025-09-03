@@ -28,29 +28,22 @@ export default function TravelToolsPage() {
 
 
 // --- MODIFIED Time Converter Component ---
+// --- CORRECTED Time Converter Component ---
 function TimeConverter() {
     const [fromQuery, setFromQuery] = useState('Dhaka (DAC)');
     const [toQuery, setToQuery] = useState('New York (JFK)');
     const [fromZone, setFromZone] = useState('Asia/Dhaka');
     const [toZone, setToZone] = useState('America/New_York');
     
-    // ✨ FIX 1: Initialize time as empty to prevent server/client mismatch.
-    const [time, setTime] = useState('');
+    // ✨ FIX: Initialize state with the exact time string.
+    // This is simple, reliable, and avoids server/client timezone issues.
+    const [time, setTime] = useState('00:18');
 
     const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    // ✨ FIX 2: Set the initial time using a client-side effect.
-    // This runs only in the user's browser after the component loads.
-    useEffect(() => {
-        // Set a specific time based on the request: Thursday, Sept 4, 2025, 00:18 AM in Dhaka
-        const initialDate = new Date('2025-09-04T00:18:00.000+06:00');
-        setTime(initialDate.toTimeString().slice(0, 5));
-    }, []); // Empty dependency array means it runs once on mount.
-
     const convertTime = useCallback(async () => {
-        // The check for `!time` prevents an unnecessary API call on initial render
         if (!fromZone || !toZone || !time) return;
         setLoading(true);
         setResult(null);
@@ -70,7 +63,7 @@ function TimeConverter() {
         }
     }, [fromZone, toZone, time]);
     
-    // This effect now correctly waits for the client-side time to be set
+    // This effect will now run on mount with the correct initial time.
     useEffect(() => {
         convertTime();
     }, [convertTime]);
