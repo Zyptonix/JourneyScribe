@@ -92,7 +92,7 @@ export default function BlogPage() {
                     {user && <button onClick={() => router.push('/blog/create')} className="bg-cyan-600 hover:bg-cyan-700 px-6 py-3 rounded-lg font-semibold transition-transform hover:scale-105 self-start whitespace-nowrap hidden md:block">+ Share Your Story</button>}
                 </div>
 
-                <div className="relative w-full mx-auto h-[50vh] mt-15 flex items-center justify-center">
+                <div className="relative w-full mx-auto h-[45vh] mt-15 flex items-center justify-center">
                     {popularBlogs.map((blog, index) => (
                         <FeaturedBlogCard 
                             key={blog.id} 
