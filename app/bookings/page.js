@@ -47,7 +47,8 @@ const FlightBookingCard = ({ booking }) => {
     const returnSegment = flightOffer?.itineraries?.[1]?.segments?.[0];
 
     return (
-        <div className="bg-black/20 backdrop-blur-xl border border-white/20 rounded-2xl shadow-lg overflow-hidden flex flex-col md:flex-row my-4">
+        <Link href={`/flight/confirmation/${encodeURIComponent(confirmationId)}`} className="group block">
+        <div className="bg-black/20 backdrop-blur-xl border border-white/20 rounded-2xl shadow-lg overflow-hidden flex flex-col md:flex-row my-4 group-hover:scale-[1.02] group-hover:border-cyan-400/50">
             {/* Main Pass Info */}
             <div className="p-6 flex-grow">
                 <div className="flex justify-between items-start">
@@ -82,13 +83,14 @@ const FlightBookingCard = ({ booking }) => {
 
             {/* --- 3. UPDATED STUB SECTION --- */}
             {/* Now wrapped in a <Link> to be clickable */}
-            <Link href={`/flight/confirmation/${encodeURIComponent(confirmationId)}`} className="group">
+            <div className='group'>
                 <div className="bg-black/20 p-6 md:border-l-2 md:border-dashed border-white/30 flex flex-col items-center justify-center min-w-[150px] h-full cursor-pointer transition-colors duration-300 group-hover:bg-cyan-500/20">
                     <TicketIcon />
                     <p className="text-xs text-slate-300 mt-2 text-center">View Ticket</p>
                 </div>
-            </Link>
+            </div>
         </div>
+        </Link>
     );
 };
 

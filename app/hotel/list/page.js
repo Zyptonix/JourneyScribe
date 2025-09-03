@@ -204,7 +204,8 @@ function OfferCard({ offer, onBook }) {
                     <h4 className="font-bold text-blue-200 capitalize">{(offer.category && offer.category !== 'N/A') ? offer.category.replace(/_/g, ' ').toLowerCase() : 'Standard Room'}</h4>
                     <div className="flex items-center gap-4 mt-2 text-sm text-slate-300">
                         <div className="flex items-center gap-2"><UsersIcon /><span>{offer.guests || 1} Guests</span></div>
-                        <div className="flex items-center gap-2"><BedIcon /><span>{offer.beds || 1} {offer.bedType ? offer.bedType.toLowerCase() : 'bed'}</span></div>
+                        <div className="flex items-center gap-2"><span>{offer.category || ''} </span></div>
+                        <div className="flex items-center gap-2"><BedIcon /><span>{offer.beds || 1} {offer.bedType ? offer.bedType.toLowerCase() : 'bed'} bed</span></div>
                     </div>
                 </div>
                 <div className="p-4 w-full md:w-48 flex flex-col justify-center items-center text-center border-t border-white/20 md:border-t-0 md:border-l">

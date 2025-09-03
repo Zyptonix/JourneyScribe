@@ -10,13 +10,18 @@ const CalendarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-
 export default function FlightSearchPage() {
     const router = useRouter();
     const getTodayString = () => new Date().toISOString().split('T')[0];
-
+   
+    const getTomorrowDate = () => {
+        const today = new Date();
+        today.setDate(today.getDate() + 1);
+        return today.toISOString().split('T')[0];
+    };
     // --- State Management ---
     const [origin, setOrigin] = useState('DAC');
     const [originQuery, setOriginQuery] = useState('Dhaka (DAC)');
     const [destination, setDestination] = useState('');
     const [destinationQuery, setDestinationQuery] = useState('');
-    const [departureDate, setDepartureDate] = useState(getTodayString());
+    const [departureDate, setDepartureDate] = useState(getTomorrowDate());
     const [returnDate, setReturnDate] = useState('');
     const [adults, setAdults] = useState(1);
     const [children, setChildren] = useState(0);
@@ -25,7 +30,7 @@ export default function FlightSearchPage() {
     const [nonstop, setNonstop] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const popularDestinations = [{ name: "Cox's Bazar", iata: 'CXB' }, { name: 'Kolkata', iata: 'CCU' }, { name: 'Bangkok', iata: 'BKK' }, { name: 'Singapore', iata: 'SIN' }, { name: 'Dubai', iata: 'DXB' }];
+    const popularDestinations = [{ name: "Cox's Bazar", iata: 'CXB' }, { name: 'Paris', iata: 'PAR' }, { name: 'New York', iata: 'NYC' }, { name: 'Singapore', iata: 'SIN' }, { name: 'Dubai', iata: 'DXB' }];
     const numberOptions = (max, start = 0) => Array.from({ length: max - start + 1 }, (_, i) => start + i);
 
     const handleSearch = (e) => {

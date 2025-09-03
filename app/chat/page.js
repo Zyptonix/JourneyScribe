@@ -109,45 +109,63 @@ function ChatWindow({ chatInfo, currentUser }) {
     // --- REVISED AND MORE STABLE handleSendMessage FUNCTION ---
     const handleSendMessage = async (e) => {
         e.preventDefault();
-        if (newMessage.trim() === '' || !currentUser) {
-            console.log("Send cancelled: Empty message or no user.");
-            return;
-        }
-
-        try {
-            console.log("1. Getting auth token...");
-            const idToken = await currentUser.getIdToken();
-            console.log("2. Auth token received.");
-
-            const response = await fetch('/api/chats/send-message', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${idToken}`
-                },
-                body: JSON.stringify({
-                    text: newMessage,
-                    chatId: id,
-                    chatType: type,
-                }),
-            });
-
-            console.log("3. API response received:", response.status);
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'API request failed');
-            }
-            
-            // 4. Only clear the input AFTER the message is successfully sent
-            setNewMessage('');
-            console.log("5. Message sent and input cleared successfully.");
-
-        } catch (error) {
-            console.error("🔴 Error sending message:", error);
-            // Optionally, show an error to the user here
-        }
+        const textToSend = newMessage.trim();
+        setNewMessage('');
+        const tempId = Date.now().toString();
+         const tempMessage = {
+        id: tempId,
+        text: textToSend,
+        senderId: currentUser.uid,
+        createdAt: null, // Indicate it's not saved yet
     };
+
+    // 3. Add the temporary message to the local state.
+    setMessages(prevMessages => [...prevMessages, tempMessage]);
+
+    // 4. --- BACKGROUND TASK ---
+    // Now, try to send the message to the server in the background.
+    try {
+        const idToken = await currentUser.getIdToken();
+
+        const response = await fetch('/api/chats/send-message', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${idToken}`
+            },
+            body: JSON.stringify({
+                text: textToSend,
+                chatId: id,
+                chatType: type,
+            }),
+        });
+        
+        if (!response.ok) {
+            // If the server returns an error, it will be caught below.
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'API request failed');
+        }
+
+        // --- SUCCESS ---
+        // On success, you don't need to do anything else!
+        // Your onSnapshot listener will automatically receive the real message
+        // from Firestore and replace the temporary one.
+
+    } catch (error) {
+        console.error("🔴 Error sending message:", error);
+        
+        // --- ERROR HANDLING ---
+        // If sending failed, revert the optimistic update.
+        // Put the user's text back in the input box so they don't lose it.
+        setNewMessage(textToSend);
+        
+        // Remove the temporary message from the list.
+        setMessages(prevMessages => prevMessages.filter(msg => msg.id !== tempId));
+        
+        // Optionally, show an error message to the user.
+        alert("Failed to send message. Please try again.");
+    }
+};
 
     // If data is missing, the header would break. This prevents that.
     if (!data) {

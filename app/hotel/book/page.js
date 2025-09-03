@@ -78,13 +78,6 @@ function HotelBookingForm() {
             setLoading(false);
             return;
         }
-
-     
-            
-            
-          
-            
-       
         try {
 
             const idToken = await user.getIdToken(); // Now this is safe to call
@@ -97,14 +90,14 @@ function HotelBookingForm() {
                 }
             };
 
-const response = await fetch('/api/hotels/book', {
+    const response = await fetch('/api/hotels/book', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${idToken}` // Token is guaranteed to be here
                 },
                 body: JSON.stringify(bookingData),
-});
+    });
             const data = await response.json();
 
             if (response.ok && data.success) {

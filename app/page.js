@@ -113,7 +113,7 @@ export default function HomePage() {
       >
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-5xl sm:text-5xl font-bold text-center text-slate-800 mt-5 mb-20">Explore Our Powerful Features</h2>
-          {/* Feature 5: Trip Management & On-the-Go Essentials */}
+          {/* Feature 1: Trip Management & On-the-Go Essentials */}
           <div className="rounded-xl border-green-500 border-l-2 border-t-2 p-8 mb-12 flex flex-col md:flex-row items-center gap-8 min-h-[50vh] md:min-h-[60vh]">
             <div className="md:w-1/2 text-center md:text-center">
               <h3 className="text-2xl sm:text-4xl font-bold text-emerald-600 mb-10">Trip Management & Essentials</h3>
@@ -223,7 +223,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Feature 1: User Management & Personalization */}
+          {/* Feature 5: User Management & Personalization */}
           <div className=" rounded-xl border-blue-500 border-l-1 border-t-1 p-8 mb-12 flex flex-col md:flex-row items-center gap-40 min-h-[60vh] md:min-h-[60vh]">
             <div className="md:w-1/2 text-center md:text-left">
               <h3 className="text-4xl sm:text-5xl font-bold text-blue-600 mb-10 text-center">User Management and Personalization </h3>

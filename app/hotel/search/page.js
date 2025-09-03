@@ -34,18 +34,15 @@ export default function HotelSearchPage() {
     const [boardType, setBoardType] = useState('');
     const [includeClosed, setIncludeClosed] = useState(true);
     const [showMoreOptions, setShowMoreOptions] = useState(false);
-
+    
+    // --- List of options ---
     const availableAmenities = ['SWIMMING_POOL', 'SPA', 'FITNESS_CENTER', 'AIR_CONDITIONING', 'RESTAURANT', 'PARKING', 'PETS_ALLOWED', 'AIRPORT_SHUTTLE', 'BUSINESS_CENTER', 'DISABLED_FACILITIES', 'WIFI', 'MEETING_ROOMS', 'NO_KID_ALLOWED', 'TENNIS', 'GOLF', 'KITCHEN', 'ANIMAL_WATCHING', 'BABY-SITTING', 'BEACH', 'CASINO', 'JACUZZI', 'SAUNA', 'SOLARIUM', 'MASSAGE', 'VALET_PARKING', 'BAR or LOUNGE', 'KIDS_WELCOME', 'NO_PORN_FILMS', 'MINIBAR', 'TELEVISION', 'WI-FI_IN_ROOM', 'ROOM_SERVICE', 'GUARDED_PARKG', 'SERV_SPEC_MENU'];
     const popularCities = [{ name: 'London', iata: 'LON' }, { name: 'New York', iata: 'NYC' }, { name: 'Paris', iata: 'PAR' }, { name: 'Dhaka', iata: 'DAC' }, { name: 'Dubai', iata: 'DXB' }];
+
 
     const handleCheckInDateChange = (e) => {
         const newCheckInDate = e.target.value;
         setCheckInDate(newCheckInDate);
-        if (newCheckInDate && (!checkOutDate || new Date(checkOutDate) <= new Date(newCheckInDate))) {
-            const newCheckOut = new Date(newCheckInDate);
-            newCheckOut.setDate(newCheckOut.getDate() + 1);
-            setCheckOutDate(newCheckOut.toISOString().split('T')[0]);
-        }
     };
 
     const handleAmenityChange = (e) => {
@@ -62,7 +59,7 @@ export default function HotelSearchPage() {
     const handleSearchSubmit = (e) => {
         e.preventDefault();
         setError('');
-        if (!selectedCityIata || !checkInDate || !checkOutDate) {
+        if (!selectedCityIata || !checkInDate) {
             setError("Please select a valid city and provide check-in and check-out dates.");
             return;
         }
@@ -120,9 +117,13 @@ export default function HotelSearchPage() {
                         </div>
                         {/* Other form fields remain the same */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="relative"><label htmlFor="checkInDate" className="block text-sm font-medium text-slate-100 mb-1">Check-in</label><div className="absolute left-3 top-9"><CalendarIcon /></div><input id="checkInDate" type="date" value={checkInDate} onChange={handleCheckInDateChange} min={getTomorrowDate()} className="bg-white/20 text-white p-3 pl-10 border border-white/30 rounded-lg w-full focus:ring-cyan-300 focus:border-cyan-300" required /></div>
-                            <div className="relative"><label htmlFor="checkOutDate" className="block text-sm font-medium text-slate-100 mb-1">Check-out</label><div className="absolute left-3 top-9"><CalendarIcon /></div><input id="checkOutDate" type="date" value={checkOutDate} onChange={(e) => setCheckOutDate(e.target.value)} min={checkInDate ? (() => { const d = new Date(checkInDate); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0]; })() : getTomorrowDate()} className="bg-white/20 text-white p-3 pl-10 border border-white/30 rounded-lg w-full focus:ring-cyan-300 focus:border-cyan-300" required /></div>
-                            <div className="relative"><label htmlFor="adults" className="block text-sm font-medium text-slate-100 mb-1">Adults</label><div className="absolute left-3 top-9"><UsersIcon /></div><input id="adults" type="number" value={adults} min="1" onChange={(e) => setAdults(parseInt(e.target.value))} className="bg-white/20 text-white p-3 pl-10 border border-white/30 rounded-lg w-full focus:ring-cyan-300 focus:border-cyan-300" required /></div>
+                            <div className="relative"><label htmlFor="checkInDate" className="block text-sm font-medium text-slate-100 mb-1">Check-in</label>
+                            <div className="absolute left-3 top-9"><CalendarIcon /></div><input id="checkInDate" type="date" value={checkInDate} onChange={handleCheckInDateChange} min={getTomorrowDate()} className="bg-white/20 text-white p-3 pl-10 border border-white/30 rounded-lg w-full focus:ring-cyan-300 focus:border-cyan-300" required /></div>
+                            <div className="relative"><label htmlFor="checkOutDate" className="block text-sm font-medium text-slate-100 mb-1">Check-out</label>
+                            <div className="absolute left-3 top-9"><CalendarIcon /></div>
+                            <input id="checkOutDate" type="date" value={checkOutDate} onChange={(e) => setCheckOutDate(e.target.value)} min={checkInDate ? (() => { const d = new Date(checkInDate); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0]; })() : getTomorrowDate()} className="bg-white/20 text-white p-3 pl-10 border border-white/30 rounded-lg w-full focus:ring-cyan-300 focus:border-cyan-300" required /></div>
+                            <div className="relative"><label htmlFor="adults" className="block text-sm font-medium text-slate-100 mb-1">Adults</label>
+                            <div className="absolute left-3 top-9"><UsersIcon /></div><input id="adults" type="number" value={adults} min="1" onChange={(e) => setAdults(parseInt(e.target.value))} className="bg-white/20 text-white p-3 pl-10 border border-white/30 rounded-lg w-full focus:ring-cyan-300 focus:border-cyan-300" required /></div>
                             <div className="relative"><label htmlFor="roomQuantity" className="block text-sm font-medium text-slate-100 mb-1">Rooms</label><div className="absolute left-3 top-9"><DoorIcon /></div><input id="roomQuantity" type="number" value={roomQuantity} min="1" onChange={(e) => setRoomQuantity(parseInt(e.target.value))} className="bg-white/20 text-white p-3 pl-10 border border-white/30 rounded-lg w-full focus:ring-cyan-300 focus:border-cyan-300" required /></div>
                         </div>
                         <div className="pt-2">

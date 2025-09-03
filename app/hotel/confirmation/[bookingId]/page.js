@@ -103,7 +103,6 @@ export default function ConfirmationPage() {
         );
     }
 
-    const isFlight = bookingData?.data?.flightOffers;
     const isHotel = bookingData?.data?.hotelBookings;
 
     return (
@@ -113,7 +112,6 @@ export default function ConfirmationPage() {
                 <NavigationBarDark />
                 {bookingData && (
                     <>
-                        {isFlight && <FlightConfirmationDetails bookingData={bookingData} />}
                         {isHotel && <HotelConfirmationDetails bookingData={bookingData} />}
                     </>
                 )}
@@ -163,61 +161,3 @@ function HotelConfirmationDetails({ bookingData }) {
     );
 }
 
-// --- Component to display FLIGHT details (no changes) ---
-function FlightConfirmationDetails({ bookingData }) {
-    // ... same as before
-    const { data } = bookingData;
-    const bookingRef = data.associatedRecords[0].reference;
-    const flightOffer = data.flightOffers[0];
-    const formatDate = (dateTime) => new Date(dateTime).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    const formatTime = (dateTime) => new Date(dateTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-
-    return (
-        <div className="p-4 md:p-8 max-w-4xl mx-auto">
-             <div className="bg-black/20 backdrop-blur-xl rounded-xl shadow-lg p-8 text-center border border-white/20">
-                <div className="flex justify-center"><CheckCircleIcon /></div>
-                <h1 className="text-3xl font-bold text-white mt-4">Booking Confirmed!</h1>
-                <p className="text-slate-300 mt-2">Your flight has been successfully booked. Your booking reference is:</p>
-                <p className="text-4xl font-extrabold text-cyan-300 mt-4 bg-black/20 inline-block px-6 py-2 rounded-lg border border-white/20">{bookingRef}</p>
-            </div>
-
-            <div className="mt-8 bg-black/20 backdrop-blur-xl rounded-xl shadow-lg p-8 border border-white/20">
-                <h2 className="text-2xl font-bold text-white mb-6">Traveler Information</h2>
-                <div className="space-y-4">
-                    {data.travelers.map(traveler => (
-                        <div key={traveler.id} className="flex items-center gap-4 p-4 bg-slate-900/30 rounded-lg border border-slate-700">
-                            <UserIcon />
-                            <div>
-                                <p className="font-semibold text-slate-100">{traveler.name.firstName} {traveler.name.lastName}</p>
-                                <p className="text-sm text-slate-400">{traveler.contact.emailAddress}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            <div className="mt-8 bg-black/20 backdrop-blur-xl rounded-xl shadow-lg p-8 border border-white/20">
-                <h2 className="text-2xl font-bold text-white mb-6">Flight Itinerary</h2>
-                <div className="space-y-6">
-                    {flightOffer.itineraries.map((itinerary, index) => (
-                        <div key={index}>
-                            <h3 className="text-lg font-semibold text-slate-200 mb-3">{index === 0 ? 'Outbound Flight' : 'Return Flight'}</h3>
-                            {itinerary.segments.map((segment) => (
-                                <div key={segment.id} className="relative pl-8 border-l-2 border-slate-600 pb-6 last:pb-0">
-                                    <div className="absolute -left-4 top-1 h-8 w-8 bg-gray-800 rounded-full flex items-center justify-center border-2 border-slate-600"><PlaneIcon /></div>
-                                    <p className="font-bold text-slate-100">{formatDate(segment.departure.at)}</p>
-                                    <div className="flex justify-between items-center mt-1">
-                                        <p className="text-slate-300">{formatTime(segment.departure.at)} - {segment.departure.iataCode}</p>
-                                        <p className="text-slate-400 text-sm">{segment.duration.replace('PT', '').replace('H', 'h ').replace('M', 'm')}</p>
-                                        <p className="text-slate-300">{formatTime(segment.arrival.at)} - {segment.arrival.iataCode}</p>
-                                    </div>
-                                    <p className="text-xs text-slate-500 mt-1">Carrier: {segment.carrierCode} {segment.number}</p>
-                                </div>
-                            ))}
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </div>
-    );
-}
