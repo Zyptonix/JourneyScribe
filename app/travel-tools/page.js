@@ -1,5 +1,3 @@
-// File: /app/travel-tools/page.js
-
 'use client';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
@@ -36,20 +34,28 @@ function TimeConverter() {
     const [fromZone, setFromZone] = useState('Asia/Dhaka');
     const [toZone, setToZone] = useState('America/New_York');
     
-    // NEW: State for the time input, defaults to current time
-    const [time, setTime] = useState(new Date().toTimeString().slice(0, 5));
+    // ✨ FIX 1: Initialize time as empty to prevent server/client mismatch.
+    const [time, setTime] = useState('');
 
     const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    // ✨ FIX 2: Set the initial time using a client-side effect.
+    // This runs only in the user's browser after the component loads.
+    useEffect(() => {
+        // Set a specific time based on the request: Thursday, Sept 4, 2025, 00:18 AM in Dhaka
+        const initialDate = new Date('2025-09-04T00:18:00.000+06:00');
+        setTime(initialDate.toTimeString().slice(0, 5));
+    }, []); // Empty dependency array means it runs once on mount.
+
     const convertTime = useCallback(async () => {
+        // The check for `!time` prevents an unnecessary API call on initial render
         if (!fromZone || !toZone || !time) return;
         setLoading(true);
         setResult(null);
         setError('');
         try {
-            // NEW: Pass the time to the API
             const res = await fetch(`/api/convert-time?from=${fromZone}&to=${toZone}&time=${time}`);
             const json = await res.json();
             if (json.success) {
@@ -62,8 +68,9 @@ function TimeConverter() {
         } finally {
             setLoading(false);
         }
-    }, [fromZone, toZone, time]); // NEW: Re-run when time changes
+    }, [fromZone, toZone, time]);
     
+    // This effect now correctly waits for the client-side time to be set
     useEffect(() => {
         convertTime();
     }, [convertTime]);
@@ -104,7 +111,7 @@ function TimeConverter() {
                             onCitySelect={(city) => handleCitySelection(city, 'from')}
                         />
                     </div>
-                    {/* NEW: Time Input Field */}
+                    {/* Time Input Field */}
                     <div>
                         <label className="block text-sm font-medium text-zinc-400 mb-1">Time</label>
                         <input
@@ -146,8 +153,8 @@ function TimeConverter() {
         </div>
     );
 }
-// --- Currency Converter Component ---
 
+// --- Currency Converter Component ---
 function CurrencyConverter() {
     const [amount, setAmount] = useState(1);
     const [fromCurrency, setFromCurrency] = useState("USD");
@@ -206,7 +213,7 @@ function CurrencyConverter() {
             </h2>
             
             <div className="space-y-4">
-                {/* --- NEW: Amount input on its own row --- */}
+                {/* Amount input on its own row */}
                 <div>
                     <label className="block text-sm font-medium text-zinc-400 mb-1">Amount</label>
                     <input
@@ -218,7 +225,7 @@ function CurrencyConverter() {
                     />
                 </div>
                 
-                {/* --- NEW: From/To inputs on a second row --- */}
+                {/* From/To inputs on a second row */}
                 <div className="grid grid-cols-[2fr_1fr_2fr] gap-3 items-center">
                     <div>
                         <label className="block text-sm font-medium text-zinc-400 mb-1">From</label>
@@ -249,7 +256,7 @@ function CurrencyConverter() {
                 </div>
             </div>
 
-            {/* --- NEW: Labeled rows of quick-select buttons --- */}
+            {/* Labeled rows of quick-select buttons */}
             <div className="mt-6 space-y-4">
                  <div>
                     <p className="text-xs text-zinc-400 text-center mb-2">Set 'From' Currency:</p>
