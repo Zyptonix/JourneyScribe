@@ -173,18 +173,18 @@ function DashboardView() {
     const [chartData, setChartData] = useState(Array(12).fill(0));
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [timeRange, setTimeRange] = useState('days'); // New state for time range: 'hours', 'days', 'months'
+    const [timeRange, setTimeRange] = useState('days'); // 'hours', 'days', 'months'
 
     useEffect(() => {
         const fetchData = async () => {
-            setLoading(true); // Set loading for each fetch
+            setLoading(true);
             try {
                 const [usersSnapshot, blogsSnapshot] = await Promise.all([
                     getDocs(collection(db, 'userProfiles')),
                     getDocs(collection(db, 'blogs'))
                 ]);
 
-                // --- Chart data calculation based on timeRange ---
+                // --- Chart data calculation ---
                 const signups = Array(12).fill(0);
                 const now = new Date();
                 usersSnapshot.forEach(doc => {
@@ -195,18 +195,15 @@ function DashboardView() {
 
                         switch (timeRange) {
                             case 'hours':
-                                // Calculate difference in hours
                                 diff = Math.floor((now.getTime() - signupDate.getTime()) / (1000 * 60 * 60));
                                 break;
                             case 'months':
-                                // Calculate difference in months
                                 const yearDiff = now.getFullYear() - signupDate.getFullYear();
                                 const monthDiff = now.getMonth() - signupDate.getMonth();
                                 diff = yearDiff * 12 + monthDiff;
                                 break;
                             case 'days':
                             default:
-                                // Calculate difference in days
                                 diff = Math.floor((now.getTime() - signupDate.getTime()) / (1000 * 60 * 60 * 24));
                                 break;
                         }
@@ -219,46 +216,44 @@ function DashboardView() {
                 });
                 setChartData(signups);
 
-                // --- Stats calculation (unchanged) ---
+                // --- Stats calculation (Popular Destination logic) ---
                 const totalUsers = usersSnapshot.size;
                 const totalBlogs = blogsSnapshot.size;
-                const locationCounts = {};
+                
+                let popularDestination = 'N/A';
+                let mostViewedBlog = null;
+                let maxViews = -1;
+
                 blogsSnapshot.forEach(doc => {
-                    const location = doc.data().location;
-                    if (location) locationCounts[location] = (locationCounts[location] || 0) + 1;
-                });
-                let maxCount = 0;
-                let popularDestinations = [];
-                for (const location in locationCounts) {
-                    const count = locationCounts[location];
-                    if (count > maxCount) {
-                        maxCount = count;
-                        popularDestinations = [location];
-                    } else if (count === maxCount) {
-                        popularDestinations.push(location);
+                    const blogData = doc.data();
+                    const currentViews = blogData.viewCount || 0; // Use viewcount field, default to 0
+                    if (currentViews > maxViews) {
+                        maxViews = currentViews;
+                        mostViewedBlog = blogData;
                     }
+                });
+
+                if (mostViewedBlog) {
+                    popularDestination = mostViewedBlog.location || 'N/A'; // Also default here
                 }
-                let finalDestination = 'N/A';
-                if (popularDestinations.length > 0) {
-                    finalDestination = popularDestinations[Math.floor(Math.random() * popularDestinations.length)];
-                }
-                setStats({ totalUsers, totalBlogs, popularDestination: finalDestination });
+                
+                setStats({ totalUsers, totalBlogs, popularDestination });
 
             } catch (err) {
                 setError("Failed to load dashboard data.");
-                console.error(err); // It's good practice to log the actual error
+                console.error(err);
             } finally {
                 setLoading(false);
             }
         };
         fetchData();
-    }, [timeRange]); // Re-run the effect when timeRange changes
+    }, [timeRange]);
 
     if (error) return <p className="text-center text-red-500">{error}</p>;
 
-    const maxChartValue = Math.max(...chartData, 1); // Avoid division by zero
+    // Ensure chart doesn't break if all data is 0
+    const maxChartValue = Math.max(...chartData, 1);
 
-    // Dynamic titles for the chart
     const chartTitles = {
         hours: "User Sign-ups (Last 12 Hours)",
         days: "User Sign-ups (Last 12 Days)",
@@ -270,9 +265,18 @@ function DashboardView() {
             <h1 className="text-3xl font-bold text-zinc-900 mb-8">Dashboard</h1>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 {/* Stat cards... */}
-                <div className="bg-white p-6 rounded-lg border border-zinc-200 shadow-sm"><h3 className="text-zinc-500 text-sm font-medium">Total Users</h3><p className="text-3xl font-bold text-zinc-900">{loading ? '...' : stats.totalUsers.toLocaleString()}</p></div>
-                <div className="bg-white p-6 rounded-lg border border-zinc-200 shadow-sm"><h3 className="text-zinc-500 text-sm font-medium">Total Blogs Posted</h3><p className="text-3xl font-bold text-zinc-900">{loading ? '...' : stats.totalBlogs.toLocaleString()}</p></div>
-                <div className="bg-white p-6 rounded-lg border border-zinc-200 shadow-sm"><h3 className="text-zinc-500 text-sm font-medium">Most Popular Destination</h3><p className="text-3xl font-bold text-zinc-900">{loading ? '...' : stats.popularDestination}</p></div>
+                <div className="bg-white p-6 rounded-lg border border-zinc-200 shadow-sm">
+                    <h3 className="text-zinc-500 text-sm font-medium">Total Users</h3>
+                    <p className="text-3xl font-bold text-zinc-900">{loading ? '...' : stats.totalUsers.toLocaleString()}</p>
+                </div>
+                <div className="bg-white p-6 rounded-lg border border-zinc-200 shadow-sm">
+                    <h3 className="text-zinc-500 text-sm font-medium">Total Blogs Posted</h3>
+                    <p className="text-3xl font-bold text-zinc-900">{loading ? '...' : stats.totalBlogs.toLocaleString()}</p>
+                </div>
+                <div className="bg-white p-6 rounded-lg border border-zinc-200 shadow-sm">
+                    <h3 className="text-zinc-500 text-sm font-medium">Most Popular Destination</h3>
+                    <p className="text-3xl font-bold text-zinc-900">{loading ? '...' : stats.popularDestination}</p>
+                </div>
             </div>
             <div className="bg-white p-6 rounded-lg border border-zinc-200 shadow-sm">
                 <div className="flex justify-between items-center mb-4">
@@ -281,7 +285,7 @@ function DashboardView() {
                         value={timeRange}
                         onChange={e => setTimeRange(e.target.value)}
                         className="p-2 border border-zinc-300 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-500"
-                        disabled={loading} // Disable dropdown while loading new data
+                        disabled={loading}
                     >
                         <option value="hours">Last 12 Hours</option>
                         <option value="days">Last 12 Days</option>
@@ -289,7 +293,7 @@ function DashboardView() {
                     </select>
                 </div>
                 {loading ? <div className="h-64 flex items-center justify-center text-zinc-500">Loading chart...</div> :
-                    <div className="h-64 flex items-end space-x-2" title={`From 11 ${timeRange} ago to today`}>
+                    <div className="h-64 flex items-end space-x-2" title={`Data from ${timeRange.slice(0, -1)} 11 to 0 ago`}>
                         {chartData.map((value, index) => (
                             <div key={index} className="flex-1 bg-zinc-800 rounded-t-md hover:bg-zinc-700 transition-colors" style={{ height: `${(value / maxChartValue) * 100}%` }} title={`${value} sign-ups`}></div>
                         ))}
