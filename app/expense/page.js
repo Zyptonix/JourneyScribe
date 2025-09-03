@@ -5,7 +5,7 @@ import { openDB } from 'idb';
 import { auth } from '@/lib/firebaseClient';
 import { onAuthStateChanged, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
 import NavigationBarDark from '@/components/NavigationBarDark';
-import { PlusIcon, TrashIcon, CurrencyDollarIcon, TagIcon, CalendarIcon } from '@heroicons/react/24/solid';
+import { PlusIcon, TrashIcon, CurrencyDollarIcon, TagIcon, CalendarIcon, ClockIcon } from '@heroicons/react/24/solid';
 
 // --- IndexedDB Configuration ---
 const DB_NAME = 'ExpenseTrackerDB';
@@ -15,20 +15,21 @@ const DB_VERSION = 1;
 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
 const initDB = async () => {
-  return openDB(DB_NAME, DB_VERSION, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains(EXPENSES_STORE)) {
-        db.createObjectStore(EXPENSES_STORE, { keyPath: 'id' });
-      }
-    },
-  });
+    return openDB(DB_NAME, DB_VERSION, {
+        upgrade(db) {
+            if (!db.objectStoreNames.contains(EXPENSES_STORE)) {
+                db.createObjectStore(EXPENSES_STORE, { keyPath: 'id' });
+            }
+        },
+    });
 };
 
 // --- Main Component ---
 const ExpenseTrackerPage = () => {
     const [userId, setUserId] = useState(null);
     const [expenses, setExpenses] = useState([]);
-    const [newExpense, setNewExpense] = useState({ name: '', amount: '', category: 'Food', currency: 'USD' });
+    // MODIFIED: Added 'time' property to the state
+    const [newExpense, setNewExpense] = useState({ name: '', amount: '', category: 'Food', currency: 'USD', date: '', time: '' });
     const [loading, setLoading] = useState(true);
 
     // --- Authentication and Data Loading ---
@@ -64,6 +65,17 @@ const ExpenseTrackerPage = () => {
             alert("Please provide an expense name and amount.");
             return;
         }
+
+        // NEW: Logic to handle selected date and time, or default to current date/time
+        let expenseTimestamp;
+        if (newExpense.date && newExpense.time) {
+            // Combine the selected date and time
+            expenseTimestamp = new Date(`${newExpense.date}T${newExpense.time}`).toISOString();
+        } else {
+            // Default to the exact current date and time if no date is chosen
+            expenseTimestamp = new Date().toISOString();
+        }
+
         const idb = await initDB();
         const expenseToAdd = {
             id: Date.now().toString(),
@@ -71,11 +83,13 @@ const ExpenseTrackerPage = () => {
             amount: parseFloat(newExpense.amount),
             category: newExpense.category,
             currency: newExpense.currency,
-            createdAt: new Date().toISOString(), // Save current date and time
+            createdAt: expenseTimestamp, // Use the determined timestamp
         };
+
         await idb.add(EXPENSES_STORE, expenseToAdd);
         setExpenses((prev) => [...prev, expenseToAdd]);
-        setNewExpense({ name: '', amount: '', category: 'Food', currency: 'USD' });
+        // MODIFIED: Reset 'date' and 'time' fields as well
+        setNewExpense({ name: '', amount: '', category: 'Food', currency: 'USD', date: '', time: '' });
     };
 
     const handleDeleteExpense = async (id) => {
@@ -123,7 +137,7 @@ const ExpenseTrackerPage = () => {
                                     <form onSubmit={handleAddExpense} className="space-y-4">
                                         <input type="text" value={newExpense.name} onChange={(e) => setNewExpense({...newExpense, name: e.target.value})} placeholder="Expense Name" required className="w-full p-4 text-lg bg-white/10 border-2 border-white/20 rounded-lg placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-green-400" />
                                         <div className="flex gap-4">
-                                            <div className="relative flex-grow"><CurrencyDollarIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-white/40" /><input type="number" value={newExpense.amount} onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})} placeholder="Amount" required className="w-full p-4 pl-12 text-lg bg-white/10 border-2 border-white/20 rounded-lg placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-green-400" /></div>
+                                            <div className="relative flex-grow"><CurrencyDollarIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-white/40" /><input type="number" step="0.01" value={newExpense.amount} onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})} placeholder="Amount" required className="w-full p-4 pl-12 text-lg bg-white/10 border-2 border-white/20 rounded-lg placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-green-400" /></div>
                                             <select value={newExpense.currency} onChange={(e) => setNewExpense({...newExpense, currency: e.target.value})} className="p-4 text-lg bg-white/10 border-2 border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-400">
                                                 {Object.keys(currencyOptions).map(curr => <option key={curr} value={curr} className="bg-gray-800">{curr}</option>)}
                                             </select>
@@ -132,6 +146,27 @@ const ExpenseTrackerPage = () => {
                                             <select value={newExpense.category} onChange={(e) => setNewExpense({...newExpense, category: e.target.value})} className="w-full p-4 pl-12 text-lg bg-white/10 border-2 border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-400">
                                                 {expenseCategories.map(cat => <option key={cat} value={cat} className="bg-gray-800">{cat}</option>)}
                                             </select>
+                                        </div>
+                                        {/* --- NEW: Date and Time Input Fields --- */}
+                                        <div className="flex flex-col  gap-4">
+                                            <div className="relative flex-grow"><CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-white/40" />
+                                                <input 
+                                                    type="date" 
+                                                    value={newExpense.date} 
+                                                    onChange={(e) => setNewExpense({...newExpense, date: e.target.value, time: e.target.value ? newExpense.time : ''})} // Clear time if date is cleared
+                                                    className="w-full p-4 pl-12 text-lg bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-green-400" 
+                                                />
+                                            </div>
+                                            <div className="relative"><ClockIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-white/40" />
+                                                <input 
+                                                    type="time" 
+                                                    value={newExpense.time} 
+                                                    onChange={(e) => setNewExpense({...newExpense, time: e.target.value})} 
+                                                    required={!!newExpense.date} // Time is required only if a date is chosen
+                                                    disabled={!newExpense.date}  // Disable time input if no date is chosen
+                                                    className="w-full p-4 pl-12 text-lg bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-green-400 disabled:opacity-50 disabled:cursor-not-allowed" 
+                                                />
+                                            </div>
                                         </div>
                                         <button type="submit" className="w-full flex items-center justify-center gap-2 py-4 text-lg bg-green-600 font-semibold rounded-lg shadow-md hover:bg-green-700 transition-colors">Add Expense</button>
                                     </form>
@@ -142,7 +177,7 @@ const ExpenseTrackerPage = () => {
                                     {Object.keys(totalExpensesByCurrency).length > 0 ? (
                                         Object.entries(totalExpensesByCurrency).map(([currency, total]) => (
                                             <p key={currency} className="text-4xl font-extrabold text-green-400 mt-2">
-                                                {currencyOptions[currency]}{total.toFixed(2)}
+                                                {currencyOptions[currency]}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </p>
                                         ))
                                     ) : (
@@ -171,7 +206,7 @@ const ExpenseTrackerPage = () => {
                                                     <p className="text-md text-white/70">{exp.category} on {new Date(exp.createdAt).toLocaleString()}</p>
                                                 </div>
                                                 <div className="flex items-center gap-4">
-                                                    <p className="text-2xl font-semibold text-green-300">{currencyOptions[exp.currency]}{exp.amount.toFixed(2)}</p>
+                                                    <p className="text-2xl font-semibold text-green-300">{currencyOptions[exp.currency]}{exp.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                                     <button onClick={() => handleDeleteExpense(exp.id)} className="p-2 bg-red-600/80 text-white rounded-full hover:bg-red-500 transition-colors">
                                                         <TrashIcon className="h-5 w-5" />
                                                     </button>

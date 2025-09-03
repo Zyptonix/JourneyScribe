@@ -79,7 +79,7 @@ export default function TripDetailsPage({ params }) {
 
     useEffect(() => {
         if (!tripId) return;
-        const postRef = doc(db, `artifacts/${appId}/public/data/trips`, tripId);
+        const postRef = doc(db, `trips`, tripId);
         const unsubscribe = onSnapshot(postRef, (doc) => {
             if (doc.exists()) {
                 setTrip({ id: doc.id, ...doc.data() });
@@ -159,7 +159,7 @@ export default function TripDetailsPage({ params }) {
     }
     
     try {
-        const postRef = doc(db, `artifacts/${appId}/public/data/trips`, tripId);
+        const postRef = doc(db, `trips`, tripId);
         await updateDoc(postRef, {
             linkedBlogId: selectedBlogId
         });

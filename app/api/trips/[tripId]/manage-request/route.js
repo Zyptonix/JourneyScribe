@@ -16,7 +16,7 @@ export async function POST(request, { params }) {
         const ownerId = decodedToken.uid;
         
         const appId = 'default-app-id';
-        const tripRef = db.collection(`artifacts/${appId}/public/data/trips`).doc(tripId);
+        const tripRef = db.collection(`trips`).doc(tripId);
         const tripDoc = await tripRef.get();
         
         // FIX #2: Use the .exists property (boolean) instead of .exists() function.

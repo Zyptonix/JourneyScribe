@@ -93,7 +93,7 @@ function ChatWindow({ chatInfo, currentUser }) {
         if (type === 'user') {
             messagesRef = collection(db, "chats", id, "messages");
         } else { // type === 'trip'
-            messagesRef = collection(db, `artifacts/${appId}/public/data/trips`, id, "messages");
+            messagesRef = collection(db, `trips`, id, "messages");
         }
         const q = query(messagesRef, orderBy("createdAt", "asc"));
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -243,7 +243,7 @@ export default function ChatPage() {
         };
 
         const fetchMyTrips = (currentUserId) => {
-            const tripsRef = collection(db, `artifacts/${appId}/public/data/trips`);
+            const tripsRef = collection(db, `trips`);
             const q = query(tripsRef, where("accepted", "array-contains", currentUserId));
             // Return the unsubscribe function for cleanup
             return onSnapshot(q, (snapshot) => {

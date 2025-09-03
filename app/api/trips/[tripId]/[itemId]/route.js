@@ -13,7 +13,7 @@ export async function DELETE(request, { params }) {
         const decodedToken = await adminAuth.verifyIdToken(idToken);
         const userId = decodedToken.uid;
         
-        const tripRef = db.collection(`artifacts/${appId}/public/data/trips`).doc(tripId);
+        const tripRef = db.collection(`trips`).doc(tripId);
         const tripDoc = await tripRef.get();
 
         if (!tripDoc.exists) {

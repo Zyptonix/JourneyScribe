@@ -37,7 +37,7 @@ const TripPostsPage = () => {
 
     useEffect(() => {
         if (!userId) return;
-        const postsCollection = collection(db, `artifacts/${appId}/public/data/trips`);
+        const postsCollection = collection(db, `trips`);
         const q = query(postsCollection, orderBy("createdAt", "desc"));
         const unsubscribePosts = onSnapshot(q, (snapshot) => {
             const postsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));

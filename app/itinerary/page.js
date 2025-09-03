@@ -3,11 +3,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { PlusIcon, CurrencyDollarIcon, CalendarIcon, ClockIcon, TrashIcon, CloudArrowUpIcon, ArrowPathIcon, XMarkIcon, TicketIcon, BuildingOffice2Icon } from '@heroicons/react/24/solid';
 import { db, auth } from '@/lib/firebaseClient';
 import { collection, doc, setDoc, onSnapshot, query, orderBy, deleteDoc, where, getDocs } from 'firebase/firestore';
-import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 import NavigationBarDark from '@/components/NavigationBarDark';
-
-// --- Global variables ---
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
 // --- Helper Functions ---
 const formatTime12Hour = (time24) => {
@@ -30,18 +27,22 @@ export default function ItineraryPage() {
     const [userId, setUserId] = useState(null);
     const [isAuthReady, setIsAuthReady] = useState(false);
     const [isItineraryLoading, setIsItineraryLoading] = useState(true);
-    const [user, setUser] = useState(null); // Full user object for tokens
+    const [user, setUser] = useState(null);
     const [itinerary, setItinerary] = useState([]);
-    const [manualEvent, setManualEvent] = useState({ name: '', cost: '', date: '', time: '' });
+    const [manualEvent, setManualEvent] = useState({ name: '', cost: '', date: '', time: '', currency: 'USD' });
     
     const [availableItineraries, setAvailableItineraries] = useState([]);
     const [selectedItineraryId, setSelectedItineraryId] = useState('main');
 
-    // State for booking modals
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [modalType, setModalType] = useState(null); // 'flight' or 'hotel'
+    const [modalType, setModalType] = useState(null);
     const [flightBookings, setFlightBookings] = useState([]);
     const [hotelBookings, setHotelBookings] = useState([]);
+
+    const [displayCurrency, setDisplayCurrency] = useState('USD');
+    const [conversionRate, setConversionRate] = useState(1);
+    const [isConverting, setIsConverting] = useState(false);
+    const currencyOptions = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'INR', 'BDT'];
 
     const isInitialMount = useRef(true);
 
@@ -54,11 +55,36 @@ export default function ItineraryPage() {
         return () => unsubscribeAuth();
     }, []);
 
-    // Fetch joined trips to populate the itinerary selector
+    useEffect(() => {
+        const fetchRate = async () => {
+            if (displayCurrency === 'USD') {
+                setConversionRate(1);
+                return;
+            }
+            setIsConverting(true);
+            try {
+                const response = await fetch(`/api/convert-currency?from=USD&to=${displayCurrency}&amount=1`);
+                const data = await response.json();
+                if (data.success) {
+                    setConversionRate(data.rate);
+                } else {
+                    console.error('Failed to fetch conversion rate:', data.error);
+                    setConversionRate(1); 
+                }
+            } catch (error) {
+                console.error('Error fetching conversion rate:', error);
+                setConversionRate(1);
+            } finally {
+                setIsConverting(false);
+            }
+        };
+        fetchRate();
+    }, [displayCurrency]);
+
     useEffect(() => {
         if (!isAuthReady || !userId) return;
 
-        const tripsRef = collection(db, `artifacts/${appId}/public/data/trips`);
+        const tripsRef = collection(db, `trips`);
         const q = query(tripsRef, where("accepted", "array-contains", userId));
         
         const unsubscribeTrips = onSnapshot(q, (snapshot) => {
@@ -73,51 +99,64 @@ export default function ItineraryPage() {
         return () => unsubscribeTrips();
     }, [isAuthReady, userId]);
 
-    // --- MODIFIED: This useEffect now handles both Personal and Shared itineraries correctly ---
+    // --- MAJOR FIX: Correctly loads and combines Personal and Pending Itineraries ---
     useEffect(() => {
         if (!isAuthReady || !userId || !selectedItineraryId) return;
         
         setIsItineraryLoading(true);
+        setItinerary([]);
 
-        let unsubscribe;
+        let unsubscribeMain;
+        let unsubscribePending;
 
         if (selectedItineraryId === 'main') {
-            // --- Logic for the user's PERSONAL itinerary ---
-            console.log("Listening to PERSONAL itinerary...");
-            const pendingItemsCollection = collection(db, "artifacts", "itinerary-builder-app", "users", userId, "pendingItems");
-            const q = query(pendingItemsCollection, orderBy("addedAt", "asc"));
-            
-            unsubscribe = onSnapshot(q, (snapshot) => {
-                snapshot.docs.forEach(async (doc) => {
-                    const newItem = { id: doc.id, ...doc.data() };
-                    setItinerary(prev => [...prev.filter(item => item.id !== newItem.id), newItem]);
-                    await deleteDoc(doc.ref);
-                });
+            // Listener 1: Load the SAVED personal itinerary
+            const mainItineraryRef = doc(db, "userProfiles", userId, "currentItinerary", "main");
+            unsubscribeMain = onSnapshot(mainItineraryRef, (doc) => {
+                if (doc.exists()) {
+                    setItinerary(doc.data().events || []);
+                } else {
+                    setItinerary([]); // If no saved itinerary, start with an empty list
+                }
                 setIsItineraryLoading(false);
             });
+
+            // Listener 2: Watch for NEW pending items to add
+            const pendingItemsRef = collection(db, "userProfiles", userId, "pendingItems");
+            const qPending = query(pendingItemsRef, orderBy("addedAt", "asc"));
+            unsubscribePending = onSnapshot(qPending, (snapshot) => {
+                if (snapshot.empty) return;
+                const newItems = [];
+                snapshot.docs.forEach(doc => {
+                    newItems.push({ id: doc.id, ...doc.data() });
+                    deleteDoc(doc.ref); // Process and delete immediately
+                });
+                setItinerary(prev => [...prev, ...newItems]);
+            });
+
         } else {
-            // --- Logic for a SHARED trip itinerary ---
-            console.log(`Listening to SHARED trip itinerary: ${selectedItineraryId}`);
-            // THIS IS THE FIX: Listen to the 'itineraryItems' subcollection
-            const itineraryItemsRef = collection(db, `artifacts/${appId}/public/data/trips`, selectedItineraryId, "itineraryItems");
+            // Logic for SHARED trip itinerary (remains the same, works correctly)
+            const itineraryItemsRef = collection(db, `trips`, selectedItineraryId, "itineraryItems");
             const q = query(itineraryItemsRef, orderBy("date", "asc"), orderBy("time", "asc"));
 
-            unsubscribe = onSnapshot(q, (snapshot) => {
+            unsubscribeMain = onSnapshot(q, (snapshot) => {
                 const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 setItinerary(items);
                 setIsItineraryLoading(false);
             });
         }
 
-        return () => unsubscribe(); // Cleanup the active listener
+        // Cleanup function to unsubscribe from all active listeners
+        return () => {
+            if (unsubscribeMain) unsubscribeMain();
+            if (unsubscribePending) unsubscribePending();
+        };
     }, [isAuthReady, userId, selectedItineraryId]);
 
-    
-    // --- MODIFIED: Auto-save only for the personal itinerary ---
     const autoSaveItinerary = useCallback(async (currentItinerary) => {
         if (!userId || isItineraryLoading || selectedItineraryId !== 'main') return;
         
-        const itineraryDocRef = doc(db, "artifacts", "itinerary-builder-app", "users", userId, "currentItinerary", "main");
+        const itineraryDocRef = doc(db, "userProfiles", userId, "currentItinerary", "main");
         try {
             await setDoc(itineraryDocRef, { events: currentItinerary });
         } catch (e) {
@@ -135,48 +174,86 @@ export default function ItineraryPage() {
     }, [itinerary, autoSaveItinerary, isItineraryLoading, selectedItineraryId]);
 
 
-    const handleAddManualEvent = (e) => {
+    const handleAddManualEvent = async (e) => {
         e.preventDefault();
         if (!manualEvent.name || !manualEvent.date || !manualEvent.time) return;
-        setItinerary(prev => [...prev, {
-            id: `manual-${Date.now()}`,
-            name: manualEvent.name,
-            cost: parseFloat(manualEvent.cost) || 0,
-            date: manualEvent.date,
-            time: manualEvent.time,
-            category: 'Custom Event',
-            type: 'manual'
-        }]);
-        setManualEvent({ name: '', cost: '', date: '', time: '' });
-    };
 
-    // --- MODIFIED: Now handles both local state and secure Firestore deletion ---
-    const handleRemoveFromItinerary = async (id) => {
+        let costInUSD = parseFloat(manualEvent.cost) || 0;
+
+        if (manualEvent.currency !== 'USD' && costInUSD > 0) {
+            try {
+                const response = await fetch(`/api/convert-currency?from=${manualEvent.currency}&to=USD&amount=${costInUSD}`);
+                const data = await response.json();
+                if (data.success) {
+                    costInUSD = parseFloat(data.convertedAmount);
+                } else {
+                    throw new Error(data.error || 'Currency conversion failed.');
+                }
+            } catch (err) {
+                alert(`Error converting currency: ${err.message}`);
+                return;
+            }
+        }
+
+        const eventData = { name: manualEvent.name, cost: costInUSD, date: manualEvent.date, time: manualEvent.time, category: 'Custom Event', type: 'manual' };
+
         if (selectedItineraryId === 'main') {
-            // For personal itinerary, just update local state (will be auto-saved)
-            setItinerary(prev => prev.filter(item => item.id !== id));
+            setItinerary(prev => [...prev, { ...eventData, id: `manual-${Date.now()}` }]);
         } else {
-            // For shared trips, call the secure API
-            if (!user || !window.confirm("Are you sure you want to delete this item?")) return;
+            if (!user) return alert("You must be logged in.");
             try {
                 const idToken = await user.getIdToken();
-                await fetch(`/api/itinerary/${selectedItineraryId}/${id}`, {
+                const response = await fetch(`/api/itinerary/${selectedItineraryId}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` }, body: JSON.stringify(eventData) });
+                if (!response.ok) throw new Error('Failed to add event.');
+            } catch (err) {
+                console.error("Error adding shared event:", err);
+                alert("Could not add event to the shared trip.");
+            }
+        }
+        setManualEvent({ name: '', cost: '', date: '', time: '', currency: 'USD' });
+    };
+
+    const handleRemoveFromItinerary = async (id) => {
+        const originalItinerary = [...itinerary]; // Keep a copy in case of error
+        const itemToRemove = itinerary.find(item => item.id === id);
+
+        if (!itemToRemove) return;
+        if (!window.confirm(`Are you sure you want to delete "${itemToRemove.name}"?`)) return;
+
+        // FIX: Optimistic UI update for a fast user experience
+        setItinerary(prev => prev.filter(item => item.id !== id));
+
+        if (selectedItineraryId === 'main') {
+            // The auto-save useEffect will handle updating Firestore for the personal itinerary
+            return; 
+        } else {
+            // For shared trips, call the secure API
+            if (!user) {
+                alert("You must be logged in to delete from a shared trip.");
+                setItinerary(originalItinerary); // Revert UI change
+                return;
+            }
+            try {
+                const idToken = await user.getIdToken();
+                const response = await fetch(`/api/itinerary/${selectedItineraryId}/${id}`, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${idToken}` }
                 });
-                // UI will update automatically from the onSnapshot listener
+                if (!response.ok) throw new Error("Server failed to delete item.");
+                // If successful, the onSnapshot listener will confirm the change, so we don't need to do anything else.
             } catch (err) {
                 console.error("Error deleting item:", err);
-                alert("Failed to delete item.");
+                alert("Failed to delete item from the server. Restoring it to your list.");
+                setItinerary(originalItinerary); // Revert UI change on error
             }
         }
     };
-    // --- Booking Modal Logic ---
+
     const handleOpenBookingModal = async (type) => {
         if (!userId) return;
         setModalType(type);
         if (type === 'flight') {
-            const flightCollection = collection(db, 'userProfiles', userId, 'bookings');
+            const flightCollection = collection(db, 'userProfiles', userId, 'flightBookings');
             const flightSnapshot = await getDocs(flightCollection);
             setFlightBookings(flightSnapshot.docs.map(d => ({id: d.id, ...d.data()})));
         } else {
@@ -187,39 +264,41 @@ export default function ItineraryPage() {
         setIsModalOpen(true);
     };
 
-    const handleAddBookingToItinerary = (booking) => {
+    const handleAddBookingToItinerary = async (booking) => {
         const newEvents = [];
-        if (modalType === 'flight' && booking.flightOffers && booking.flightOffers.length > 0) {
+        if (modalType === 'flight' && booking.flightOffers?.length > 0) {
             const flightOffer = booking.flightOffers[0];
             const segments = flightOffer.itineraries[0].segments;
-
             segments.forEach((segment, index) => {
                 const departureTime = new Date(segment.departure.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-                const newEvent = {
-                    id: `flight-${booking.id}-${segment.id}`,
-                    name: `Flight from ${segment.departure.iataCode} to ${segment.arrival.iataCode}`,
-                    cost: index === 0 ? parseFloat(flightOffer.price.total) : 0,
-                    date: segment.departure.at.split('T')[0],
-                    time: departureTime,
-                    category: `Flight ${segment.carrierCode} ${segment.number}`,
-                    type: 'flight'
-                };
-                newEvents.push(newEvent);
+                newEvents.push({ id: `flight-${booking.id}-${segment.id}`, name: `Flight from ${segment.departure.iataCode} to ${segment.arrival.iataCode}`, cost: index === 0 ? parseFloat(flightOffer.price.total) : 0, date: segment.departure.at.split('T')[0], time: departureTime, category: `Flight ${segment.carrierCode} ${segment.number}`, type: 'flight' });
             });
-
         } else if (modalType === 'hotel' && booking.amadeusResponse?.data?.hotelBookings?.[0]) {
             const hotelBooking = booking.amadeusResponse.data.hotelBookings[0];
-            newEvents.push({
-                id: `hotel-${booking.id}`,
-                name: `Check-in: ${hotelBooking.hotel.name}`,
-                cost: parseFloat(hotelBooking.hotelOffer.price.total),
-                date: hotelBooking.hotelOffer.checkInDate,
-                time: '15:00', // Default check-in time
-                category: 'Hotel Booking',
-                type: 'hotel'
-            });
+            newEvents.push({ id: `hotel-${booking.id}`, name: `Check-in: ${hotelBooking.hotel.name}`, cost: parseFloat(hotelBooking.hotelOffer.price.total), date: hotelBooking.hotelOffer.checkInDate, time: '15:00', category: 'Hotel Booking', type: 'hotel' });
         }
-        setItinerary(prev => [...prev, ...newEvents]);
+
+        const isDuplicate = newEvents.some(newEvent => itinerary.some(existingItem => existingItem.id === newEvent.id));
+        if (isDuplicate) {
+            alert('This booking has already been added to the itinerary.');
+            return;
+        }
+
+        if (selectedItineraryId === 'main') {
+            setItinerary(prev => [...prev, ...newEvents]);
+        } else {
+            if (!user) return alert("You must be logged in.");
+            try {
+                const idToken = await user.getIdToken();
+                for (const eventData of newEvents) {
+                    const response = await fetch(`/api/itinerary/${selectedItineraryId}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` }, body: JSON.stringify(eventData) });
+                    if (!response.ok) throw new Error(`Failed to add booking: ${eventData.name}`);
+                }
+            } catch (err) {
+                console.error("Error adding shared booking:", err);
+                alert("Could not add booking to the shared trip.");
+            }
+        }
         setIsModalOpen(false);
     };
 
@@ -233,7 +312,8 @@ export default function ItineraryPage() {
         }, {});
     };
 
-    const totalCost = itinerary.reduce((sum, event) => sum + (event.cost || 0), 0);
+    const totalCostUSD = itinerary.reduce((sum, event) => sum + (event.cost || 0), 0);
+    const convertedTotalCost = totalCostUSD * conversionRate;
     const itineraryByDay = groupItineraryByDay(itinerary);
 
     return (
@@ -263,7 +343,12 @@ export default function ItineraryPage() {
                                     <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><PlusIcon className="h-6 w-6 text-green-400" /> Add a Custom Event</h2>
                                     <form onSubmit={handleAddManualEvent} className="space-y-4">
                                         <input type="text" value={manualEvent.name} onChange={(e) => setManualEvent({...manualEvent, name: e.target.value})} placeholder="Event Name" required className="w-full p-3 bg-white/10 border-2 border-white/20 rounded-lg placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-green-400" />
-                                        <div className="relative"><CurrencyDollarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white/40" /><input type="number" value={manualEvent.cost} onChange={(e) => setManualEvent({...manualEvent, cost: e.target.value})} placeholder="Cost" className="w-full p-3 pl-10 bg-white/10 border-2 border-white/20 rounded-lg placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-green-400" /></div>
+                                        <div className="flex gap-2">
+                                            <div className="relative flex-grow"><CurrencyDollarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white/40" /><input type="number" step="0.01" value={manualEvent.cost} onChange={(e) => setManualEvent({...manualEvent, cost: e.target.value})} placeholder="Cost" className="w-full p-3 pl-10 bg-white/10 border-2 border-white/20 rounded-lg placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-green-400" /></div>
+                                            <select value={manualEvent.currency} onChange={(e) => setManualEvent({...manualEvent, currency: e.target.value})} className="bg-white/10 border-2 border-white/20 rounded-lg p-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-green-400">
+                                                {currencyOptions.map(c => <option key={c} value={c} className="bg-gray-800">{c}</option>)}
+                                            </select>
+                                        </div>
                                         <div className="relative"><CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white/40" /><input type="date" value={manualEvent.date} onChange={(e) => setManualEvent({...manualEvent, date: e.target.value})} required className="w-full p-3 pl-10 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-green-400" /></div>
                                         <div className="relative"><ClockIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white/40" /><input type="time" value={manualEvent.time} onChange={(e) => setManualEvent({...manualEvent, time: e.target.value})} required className="w-full p-3 pl-10 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-green-400" /></div>
                                         <button type="submit" className="w-full flex items-center justify-center gap-2 p-3 bg-green-600 font-semibold rounded-lg shadow-md hover:bg-green-700 transition-colors"><PlusIcon className="h-5 w-5" />Add to Schedule</button>
@@ -285,7 +370,17 @@ export default function ItineraryPage() {
                             <div className="backdrop-blur-xl bg-black/30 rounded-2xl p-8 border border-white/20 shadow-2xl">
                                 <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
                                     <h2 className="text-3xl font-bold">Trip Schedule</h2>
-                                    <div className="text-xl font-semibold text-white/90">Budget: <span className="text-green-300 font-extrabold">${totalCost.toFixed(2)}</span></div>
+                                    <div className="flex items-center gap-4">
+                                        <div className="text-xl font-semibold text-white/90">
+                                            Budget: 
+                                            <span className="text-green-300 font-extrabold ml-2">
+                                                {isConverting ? '...' : convertedTotalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                        <select value={displayCurrency} onChange={(e) => setDisplayCurrency(e.target.value)} disabled={isConverting} className="bg-white/10 border-2 border-white/20 rounded-md p-1 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50">
+                                            {currencyOptions.map(c => <option key={c} value={c} className="bg-gray-800">{c}</option>)}
+                                        </select>
+                                    </div>
                                 </div>
                                 
                                 {isItineraryLoading ? (
@@ -298,25 +393,32 @@ export default function ItineraryPage() {
                                             <div key={date}>
                                                 <h3 className="text-2xl font-bold text-white border-b-2 border-blue-400/50 pb-2 mb-6">{new Date(date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</h3>
                                                 <div className="relative pl-8 space-y-6 border-l-2 border-white/30">
-                                                    {events.map((item) => (
-                                                        <div key={item.id} className="relative">
-                                                            <div className="absolute -left-[41px] top-1.5 h-4 w-4 rounded-full bg-blue-400 ring-4 ring-blue-500/50"></div>
-                                                            <div className="bg-black/20 p-4 rounded-lg border border-white/10">
-                                                                <div className="flex justify-between items-start">
-                                                                    <div>
-                                                                        <p className="text-sm font-semibold text-blue-300">{formatTime12Hour(item.time)}</p>
-                                                                        <h4 className="text-xl font-bold mt-1">{item.name}</h4>
-                                                                        {item.description && <p className="text-sm text-white/70 mt-2 h-24 overflow-y-auto scrollbar-hide">{stripHtml(item.description)}</p>}
-                                                                        <p className="text-sm text-white/70 mt-1">{item.category}</p>
-                                                                    </div>
-                                                                    <div className="text-right flex-shrink-0 ml-4">
-                                                                        {item.cost > 0 && <p className="text-lg font-semibold text-green-300">${(item.cost).toFixed(2)}</p>}
-                                                                        <button onClick={() => handleRemoveFromItinerary(item.id)} className="mt-2 p-1.5 bg-red-600/80 text-white rounded-full hover:bg-red-500 transition-colors"><TrashIcon className="h-4 w-4" /></button>
+                                                    {events.map((item) => {
+                                                        const convertedItemCost = (item.cost || 0) * conversionRate;
+                                                        return (
+                                                            <div key={item.id} className="relative">
+                                                                <div className="absolute -left-[41px] top-1.5 h-4 w-4 rounded-full bg-blue-400 ring-4 ring-blue-500/50"></div>
+                                                                <div className="bg-black/20 p-4 rounded-lg border border-white/10">
+                                                                    <div className="flex justify-between items-start">
+                                                                        <div>
+                                                                            <p className="text-sm font-semibold text-blue-300">{formatTime12Hour(item.time)}</p>
+                                                                            <h4 className="text-xl font-bold mt-1">{item.name}</h4>
+                                                                            {item.description && <p className="text-sm text-white/70 mt-2 h-24 overflow-y-auto scrollbar-hide">{stripHtml(item.description)}</p>}
+                                                                            <p className="text-sm text-white/70 mt-1">{item.category}</p>
+                                                                        </div>
+                                                                        <div className="text-right flex-shrink-0 ml-4">
+                                                                            {item.cost > 0 && 
+                                                                                <p className="text-lg font-semibold text-green-300">
+                                                                                    {convertedItemCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {displayCurrency}
+                                                                                </p>
+                                                                            }
+                                                                            <button onClick={() => handleRemoveFromItinerary(item.id)} className="mt-2 p-1.5 bg-red-600/80 text-white rounded-full hover:bg-red-500 transition-colors"><TrashIcon className="h-4 w-4" /></button>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                    ))}
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         ))}

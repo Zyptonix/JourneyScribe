@@ -43,7 +43,7 @@ export default function ActivitiesPage() {
             return;
         }
         // Query for trips where the user is an accepted member
-        const tripsRef = collection(db, `artifacts/${appId}/public/data/trips`);
+        const tripsRef = collection(db, `trips`);
         const q = query(tripsRef, where("accepted", "array-contains", userId));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -116,10 +116,10 @@ export default function ActivitiesPage() {
             let itineraryItemsCollection;
             if (selectedTripId === 'main') {
                 // Path for the user's personal, temporary item list
-                itineraryItemsCollection = collection(db, "artifacts", "itinerary-builder-app", "users", userId, "pendingItems");
+                itineraryItemsCollection = collection(db, "userProfiles", userId, "pendingItems");
             } else {
                 // Path for a specific trip's itinerary subcollection
-                itineraryItemsCollection = collection(db, `artifacts/${appId}/public/data/trips`, selectedTripId, "itineraryItems");
+                itineraryItemsCollection = collection(db, `trips`, selectedTripId, "itineraryItems");
             }
             await addDoc(itineraryItemsCollection, newItem);
             

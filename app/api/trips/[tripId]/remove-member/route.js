@@ -16,7 +16,7 @@ export async function POST(request, { params }) {
         const actionTakerId = decodedToken.uid;
         
         const appId = 'default-app-id';
-        const tripRef = db.collection(`artifacts/${appId}/public/data/trips`).doc(tripId);
+        const tripRef = db.collection(`trips`).doc(tripId);
         const tripDoc = await tripRef.get();
         
         if (!tripDoc.exists) {

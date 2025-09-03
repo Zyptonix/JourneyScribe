@@ -37,7 +37,7 @@ export async function POST(request, { params }) {
         console.log(`[AUTH SUCCESS] Requester authenticated: ${requesterName} (${requesterId})`);
 
         const appId = 'default-app-id'; 
-        const tripRef = db.collection(`artifacts/${appId}/public/data/trips`).doc(tripId);
+        const tripRef = db.collection(`trips`).doc(tripId);
         const tripDoc = await tripRef.get();
 
         if (!tripDoc.exists) {

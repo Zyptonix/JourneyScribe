@@ -164,7 +164,7 @@ function BookingsDisplay() {
             setError('');
             try {
                 // Fetch Flights
-                const flightQuery = query(collection(db, "userProfiles", user.uid, "bookings"));
+                const flightQuery = query(collection(db, "userProfiles", user.uid, "flightBookings"));
                 const flightSnapshot = await getDocs(flightQuery);
                 const flightData = flightSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 setFlights(flightData);

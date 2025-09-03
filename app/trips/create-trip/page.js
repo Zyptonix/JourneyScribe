@@ -112,7 +112,7 @@ export default function CreateTripPage() {
                 createdAt: Date.now(),
             };
 
-            const docRef = await addDoc(collection(db, `artifacts/${appId}/public/data/trips`), newPost);
+            const docRef = await addDoc(collection(db, `trips`), newPost);
             
             alert('Trip post created successfully!');
             router.push(`/trips/${docRef.id}`); // Navigate to the new trip's detail page

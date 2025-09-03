@@ -31,7 +31,7 @@ export async function POST(request) {
 
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
     // The document ID will be the notification 'type' for easy lookup
-    const userPrefsDocRef = db.collection(`artifacts/${appId}/users/${userId}/preferences`).doc(type);
+    const userPrefsDocRef = db.collection(`userProfiles/${userId}/preferences`).doc(type);
 
     try {
         // Use set() to create or overwrite the preference document.

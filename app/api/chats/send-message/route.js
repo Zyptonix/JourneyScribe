@@ -41,7 +41,7 @@ export async function POST(request) {
         } else { // 'trip'
             // NOTE: The appId is not available on the server. You need to define it or hardcode it.
             const appId = 'default-app-id'; // Replace with your actual App ID if it's dynamic
-            messagesRef = db.collection(`artifacts/${appId}/public/data/trips`).doc(chatId).collection('messages');
+            messagesRef = db.collection(`trips`).doc(chatId).collection('messages');
         }
 
         // 3. Save the new message to the database
@@ -62,7 +62,7 @@ export async function POST(request) {
         } else { // 'trip'
             // For a trip chat, find all other members
             const appId = 'default-app-id';
-            const tripDoc = await db.collection(`artifacts/${appId}/public/data/trips`).doc(chatId).get();
+            const tripDoc = await db.collection(`trips`).doc(chatId).get();
             recipients = tripDoc.data().accepted.filter(id => id !== senderId);
         }
         

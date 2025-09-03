@@ -5,6 +5,7 @@ import { auth,db } from '@/lib/firebaseClient';
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth'; // Import signOut for logout
 import { getFirestore, doc, getDoc } from 'firebase/firestore'; // Import Firestore functions
 import NavigationBar from '@/components/NavigationBar';
+import Image from 'next/image';
 
 export default function HomePage() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -126,7 +127,9 @@ export default function HomePage() {
             </div>
             <div className="md:w-1/2 flex justify-center items-center">
               <div className="w-full max-lg h-48 md:h-100 rounded-lg flex items-center justify-center overflow-hidden">
-                   <img
+                   <Image
+                     width={40}  // Add desired width in pixels
+  height={40} // Add desired height in pixels
                     src="/assets/essentials.svg"
                     alt="Trip Essentials"
                     className="w-full h-full object-contain p-4"
@@ -156,7 +159,9 @@ export default function HomePage() {
             </div>
             <div className="md:w-1/2 flex justify-center items-center">
               <div className="w-full max-w-lg h-120 md:h-120 rounded-lg flex items-center justify-center overflow-hidden">
-                   <img
+                   <Image
+                     width={40}  // Add desired width in pixels
+  height={40} // Add desired height in pixels
                     src="/assets/trip-planning.svg"
                     alt="Trip Planning"
                     className="w-full h-full object-contain p-4"
@@ -180,7 +185,9 @@ export default function HomePage() {
             </div>
             <div className="md:w-1/2 flex justify-center items-center">
               <div className="w-full max-w-lg h-100 md:h-100 rounded-lg flex items-center justify-center overflow-hidden">
-                <img
+                <Image
+                  width={40}  // Add desired width in pixels
+  height={40} // Add desired height in pixels
                   src="/assets/booking.svg"
                   alt="Booking"
                   className="w-full h-full object-contain p-4"
@@ -204,7 +211,9 @@ export default function HomePage() {
             </div>
             <div className="md:w-1/2 flex justify-center items-center">
               <div className="w-full max-w-lg h-48 md:h-100 rounded-lg flex items-center justify-center overflow-hidden">
-                   <img
+                   <Image
+                     width={40}  // Add desired width in pixels
+  height={40} // Add desired height in pixels
                     src="/assets/connection.svg"
                     alt="Connection and Chat"
                     className="w-full h-full object-contain p-4"
@@ -228,7 +237,9 @@ export default function HomePage() {
             </div>
             <div className="md:w-1/2 flex justify-center items-center">
               <div className="w-full max-w-lg h-70 md:h-100 rounded-lg flex items-center justify-center border border-blue-200 overflow-hidden">
-                <img
+                <Image
+                  width={40}  // Add desired width in pixels
+  height={40} // Add desired height in pixels
                   src="/assets/user-management.svg"
                   alt="User Profile Management"
                   className="w-full h-full object-contain p-4"

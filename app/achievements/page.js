@@ -120,7 +120,7 @@ export default function HistoryPage() {
         });
 
         // Fetch Trips
-        const tripsQuery = query(collection(db, `artifacts/${appId}/public/data/trips`), where("userId", "==", userId));
+        const tripsQuery = query(collection(db, `trips`), where("userId", "==", userId));
         const unsubscribeTrips = onSnapshot(tripsQuery, async (snapshot) => {
             try {
                 const tripsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));

@@ -480,7 +480,7 @@ function TripManagementView() {
         const fetchTrips = async () => {
             try {
                 const appId = 'default-app-id'; // Assuming a default or configured app ID
-                const tripsRef = collection(db, `artifacts/${appId}/public/data/trips`);
+                const tripsRef = collection(db, `trips`);
                 const tripSnapshot = await getDocs(tripsRef);
                 const tripsList = tripSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
@@ -517,7 +517,7 @@ function TripManagementView() {
         if (!window.confirm(`Are you sure you want to delete the trip to "${tripLocation}"?`)) return;
         try {
             const appId = 'default-app-id';
-            const tripDocRef = doc(db, `artifacts/${appId}/public/data/trips`, tripId);
+            const tripDocRef = doc(db, `trips`, tripId);
             await deleteDoc(tripDocRef);
             setTrips(currentTrips => currentTrips.filter(trip => trip.id !== tripId));
             alert(`Successfully deleted trip to ${tripLocation}.`);

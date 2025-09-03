@@ -21,8 +21,8 @@ export async function POST(request) {
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
     // Use db.doc() and db.collection() directly from the Admin SDK instance
-    const userPrefsDocRef = db.doc(`artifacts/${appId}/users/${userId}/preferences/${type}`);
-    const inAppNotificationsCollectionRef = db.collection(`artifacts/${appId}/users/${userId}/notifications`);
+    const userPrefsDocRef = db.doc(`userProfiles/${userId}/preferences/${type}`);
+    const inAppNotificationsCollectionRef = db.collection(`userProfiles/${userId}/notifications`);
 
     try {
         const prefsSnap = await userPrefsDocRef.get(); // .get() method is called on the doc reference directly

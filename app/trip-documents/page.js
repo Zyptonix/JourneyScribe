@@ -36,7 +36,7 @@ const TripDocumentsAndNotes = () => {
   const [userId, setUserId] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [notes, setNotes] = useState([]);
-  const [itinerary, setItinerary] = useState([]); // To link documents to events
+
 
   useEffect(() => {
     if (!auth || !db) return;
@@ -44,13 +44,6 @@ const TripDocumentsAndNotes = () => {
     const authenticateAndLoad = async (user) => {
         setUserId(user.uid);
 
-        // --- Load Itinerary for linking ---
-        const itineraryDocRef = doc(db, "artifacts", "itinerary-builder-app", "users", user.uid, "currentItinerary", "main");
-        onSnapshot(itineraryDocRef, (doc) => {
-            if (doc.exists()) {
-                setItinerary(doc.data().events || []);
-            }
-        });
 
         // --- Load Local Data from IndexedDB ---
         const idb = await initDB();
@@ -112,7 +105,7 @@ const TripDocumentsAndNotes = () => {
               </button>
             </div>
 
-            {activeTab === 'documents' && <DocumentsTab documents={documents} setDocuments={setDocuments} itinerary={itinerary} />}
+            {activeTab === 'documents' && <DocumentsTab documents={documents} setDocuments={setDocuments} />}
             {activeTab === 'notes' && <NotesTab notes={notes} setNotes={setNotes} />}
           </div>
         </div>
@@ -122,11 +115,11 @@ const TripDocumentsAndNotes = () => {
 };
 
 // --- Documents Tab Component ---
-const DocumentsTab = ({ documents, setDocuments, itinerary }) => {
+const DocumentsTab = ({ documents, setDocuments }) => {
     const [selectedFile, setSelectedFile] = useState(null);
     const [docName, setDocName] = useState('');
     const [docDesc, setDocDesc] = useState('');
-    const [linkedEventId, setLinkedEventId] = useState('');
+ 
 
     const handleAddDocument = async () => {
         if (!selectedFile || !docName) {
@@ -140,7 +133,7 @@ const DocumentsTab = ({ documents, setDocuments, itinerary }) => {
                 id: Date.now().toString(),
                 name: docName,
                 description: docDesc,
-                linkedEventId: linkedEventId,
+                
                 originalFileName: selectedFile.name,
                 file: event.target.result,
                 fileType: selectedFile.type,
@@ -153,7 +146,7 @@ const DocumentsTab = ({ documents, setDocuments, itinerary }) => {
             setSelectedFile(null);
             setDocName('');
             setDocDesc('');
-            setLinkedEventId('');
+           
             document.getElementById('doc-upload-input').value = '';
         };
         fileReader.readAsArrayBuffer(selectedFile);
@@ -170,23 +163,19 @@ const DocumentsTab = ({ documents, setDocuments, itinerary }) => {
                 <h3 className="text-lg font-semibold text-white">Upload a New Document</h3>
                 <input type="text" value={docName} onChange={(e) => setDocName(e.target.value)} placeholder="Document Name (e.g., Flight Ticket)" className="w-full p-3 rounded-lg bg-black/40 text-white placeholder-white/50 border-2 border-white/30 focus:outline-none focus:border-blue-400" />
                 <textarea value={docDesc} onChange={(e) => setDocDesc(e.target.value)} placeholder="Short Description (optional)" className="w-full h-20 p-3 rounded-lg bg-black/40 text-white placeholder-white/50 border-2 border-white/30 focus:outline-none focus:border-blue-400 resize-none" />
-                <select value={linkedEventId} onChange={(e) => setLinkedEventId(e.target.value)} className="w-full p-3 rounded-lg bg-black/40 text-white border-2 border-white/30 focus:outline-none focus:border-blue-400">
-                    <option value="">(Optional) Link to an itinerary event</option>
-                    {itinerary.map(event => <option key={event.id} value={event.id}>{event.name} @ {event.time}</option>)}
-                </select>
+
                 <input id="doc-upload-input" type="file" onChange={(e) => setSelectedFile(e.target.files[0])} className="w-full text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-500 file:text-white hover:file:bg-blue-600" />
                 <button onClick={handleAddDocument} className="w-full bg-blue-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-600 shadow-md disabled:bg-gray-500" disabled={!selectedFile || !docName}>Save Locally</button>
             </div>
             <div className="space-y-4">
                 {documents.length > 0 ? (
                     documents.map((doc) => {
-                        const linkedEvent = itinerary.find(e => e.id === doc.linkedEventId);
                         return (
                             <div key={doc.id} className="p-4 border border-white/20 rounded-lg shadow-sm bg-white/5 flex items-center justify-between">
                                 <div>
                                     <p className="font-semibold text-lg text-white">{doc.name}</p>
                                     <p className="text-sm text-white/70">{doc.description}</p>
-                                    {linkedEvent && <p className="text-xs text-blue-400 mt-1">Linked to: {linkedEvent.name}</p>}
+                                  
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <a href={doc.url} target="_blank" rel="noopener noreferrer" className="px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600">View</a>
