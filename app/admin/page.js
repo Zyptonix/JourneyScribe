@@ -173,33 +173,53 @@ function DashboardView() {
     const [chartData, setChartData] = useState(Array(12).fill(0));
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [timeRange, setTimeRange] = useState('days'); // New state for time range: 'hours', 'days', 'months'
 
     useEffect(() => {
         const fetchData = async () => {
-            setLoading(true);
+            setLoading(true); // Set loading for each fetch
             try {
                 const [usersSnapshot, blogsSnapshot] = await Promise.all([
                     getDocs(collection(db, 'userProfiles')),
                     getDocs(collection(db, 'blogs'))
                 ]);
 
-                // Daily signups calculation
-                const dailySignups = Array(12).fill(0);
+                // --- Chart data calculation based on timeRange ---
+                const signups = Array(12).fill(0);
                 const now = new Date();
                 usersSnapshot.forEach(doc => {
                     const user = doc.data();
                     if (user.createdAt?.toDate) {
                         const signupDate = user.createdAt.toDate();
-                        const dayDiff = Math.floor((now.getTime() - signupDate.getTime()) / (1000 * 60 * 60 * 24));
-                        if (dayDiff >= 0 && dayDiff < 12) {
-                            const index = 11 - dayDiff;
-                            dailySignups[index]++;
+                        let diff;
+
+                        switch (timeRange) {
+                            case 'hours':
+                                // Calculate difference in hours
+                                diff = Math.floor((now.getTime() - signupDate.getTime()) / (1000 * 60 * 60));
+                                break;
+                            case 'months':
+                                // Calculate difference in months
+                                const yearDiff = now.getFullYear() - signupDate.getFullYear();
+                                const monthDiff = now.getMonth() - signupDate.getMonth();
+                                diff = yearDiff * 12 + monthDiff;
+                                break;
+                            case 'days':
+                            default:
+                                // Calculate difference in days
+                                diff = Math.floor((now.getTime() - signupDate.getTime()) / (1000 * 60 * 60 * 24));
+                                break;
+                        }
+
+                        if (diff >= 0 && diff < 12) {
+                            const index = 11 - diff;
+                            signups[index]++;
                         }
                     }
                 });
-                setChartData(dailySignups);
+                setChartData(signups);
 
-                // Stats calculation (unchanged)
+                // --- Stats calculation (unchanged) ---
                 const totalUsers = usersSnapshot.size;
                 const totalBlogs = blogsSnapshot.size;
                 const locationCounts = {};
@@ -226,16 +246,24 @@ function DashboardView() {
 
             } catch (err) {
                 setError("Failed to load dashboard data.");
+                console.error(err); // It's good practice to log the actual error
             } finally {
                 setLoading(false);
             }
         };
         fetchData();
-    }, []);
-    
+    }, [timeRange]); // Re-run the effect when timeRange changes
+
     if (error) return <p className="text-center text-red-500">{error}</p>;
-    
+
     const maxChartValue = Math.max(...chartData, 1); // Avoid division by zero
+
+    // Dynamic titles for the chart
+    const chartTitles = {
+        hours: "User Sign-ups (Last 12 Hours)",
+        days: "User Sign-ups (Last 12 Days)",
+        months: "User Sign-ups (Last 12 Months)"
+    };
 
     return (
         <div>
@@ -247,9 +275,21 @@ function DashboardView() {
                 <div className="bg-white p-6 rounded-lg border border-zinc-200 shadow-sm"><h3 className="text-zinc-500 text-sm font-medium">Most Popular Destination</h3><p className="text-3xl font-bold text-zinc-900">{loading ? '...' : stats.popularDestination}</p></div>
             </div>
             <div className="bg-white p-6 rounded-lg border border-zinc-200 shadow-sm">
-                <h3 className="text-lg font-semibold text-zinc-900 mb-4">User Sign-ups (Last 12 Days)</h3>
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold text-zinc-900">{chartTitles[timeRange]}</h3>
+                    <select
+                        value={timeRange}
+                        onChange={e => setTimeRange(e.target.value)}
+                        className="p-2 border border-zinc-300 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-500"
+                        disabled={loading} // Disable dropdown while loading new data
+                    >
+                        <option value="hours">Last 12 Hours</option>
+                        <option value="days">Last 12 Days</option>
+                        <option value="months">Last 12 Months</option>
+                    </select>
+                </div>
                 {loading ? <div className="h-64 flex items-center justify-center text-zinc-500">Loading chart...</div> :
-                    <div className="h-64 flex items-end space-x-2" title="From 11 days ago to today">
+                    <div className="h-64 flex items-end space-x-2" title={`From 11 ${timeRange} ago to today`}>
                         {chartData.map((value, index) => (
                             <div key={index} className="flex-1 bg-zinc-800 rounded-t-md hover:bg-zinc-700 transition-colors" style={{ height: `${(value / maxChartValue) * 100}%` }} title={`${value} sign-ups`}></div>
                         ))}
