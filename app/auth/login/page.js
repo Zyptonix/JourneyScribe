@@ -1,30 +1,30 @@
+
 'use client';
 import { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-// Assuming '@/lib/firebase' correctly exports the Firebase auth instance
 import { auth } from '@/lib/firebaseClient';
-import { useRouter } from 'next/navigation'; // Correct import for useRouter
-import Link from 'next/link'; // Import Link for better Next.js navigation
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false); // Add loading state
+  const [loading, setLoading] = useState(false); 
   const router = useRouter();
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setLoading(true); // Set loading to true on submission
-    setError('');     // Clear previous errors
+    setLoading(true); 
+    setError('');     
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push('/'); // Redirect on successful login
+      router.push('/'); 
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoading(false); // Set loading to false after completion (success or error)
+      setLoading(false); 
     }
   };
 
@@ -34,17 +34,17 @@ export default function LoginPage() {
       <div 
         className="absolute inset-0 bg-cover bg-center" 
         style={{ 
-          // Changed to local image path with explicit .jpg extension
-          backgroundImage: "url('/assets/authBackground.jpg')", // <--- Check and update this extension if needed!
+          
+          backgroundImage: "url('/assets/authBackground.jpg')",
           filter: "blur(1px)", 
           transform: "scale(1.05)" 
         }}
       ></div>
       
-      {/* Overlay to darken and make content more readable over the blurred background */}
+      {/* Overlay to darken */}
       <div className="absolute inset-0 bg-black opacity-10"></div>
 
-      {/* Login Card - relative positioning to be on top of background */}
+      {/* Login Card */}
       <div className="relative z-10 w-full max-w-md transform rounded-xl bg-white p-8 text-center shadow-2xl transition-all duration-300 ease-in-out hover:scale-105">
         <h2 className="mb-2 flex items-center justify-center gap-2 text-3xl font-bold text-slate-800">
           Welcome to JourneyScribe <span role="img" aria-label="airplane">✈️</span>
@@ -67,8 +67,8 @@ export default function LoginPage() {
             className="w-full rounded-lg border border-slate-300 bg-slate-50 p-3 text-slate-800 placeholder-slate-400 outline-none transition-colors duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            required // Make the email field required
-            disabled={loading} // Disable input while loading
+            required 
+            disabled={loading} 
           />
 
           <input
@@ -77,14 +77,14 @@ export default function LoginPage() {
             className="w-full rounded-lg border border-slate-300 bg-slate-50 p-3 text-slate-800 placeholder-slate-400 outline-none transition-colors duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            required // Make the password field required
-            disabled={loading} // Disable input while loading
+            required 
+            disabled={loading} 
           />
 
           <button
             type="submit"
             className="w-full rounded-lg bg-blue-600 p-3 font-semibold text-white transition-colors duration-200 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-            disabled={loading} // Disable button while loading
+            disabled={loading}
           >
             {loading ? (
               <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

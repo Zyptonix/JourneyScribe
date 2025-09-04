@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { sendPasswordResetEmail } from 'firebase/auth';
 // Assuming '@/lib/firebaseClient' correctly exports the Firebase auth instance
 import { auth } from '@/lib/firebaseClient'; 
-import Link from 'next/link'; // Import Link for better Next.js navigation
+import Link from 'next/link'; 
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -29,7 +29,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center p-4 font-inter overflow-hidden">
-      {/* Background Image with Blur Effect */}
+      {/* Background Image*/}
       <div 
         className="absolute inset-0 bg-cover bg-center" 
         style={{ 
@@ -39,10 +39,9 @@ export default function ForgotPasswordPage() {
         }}
       ></div>
       
-      {/* Overlay to darken and make content more readable over the blurred background */}
+      {/* Overlay to darken*/}
       <div className="absolute inset-0 bg-black opacity-10"></div>
 
-      {/* Login Card - relative positioning to be on top of background */}
       <div className="relative z-10 w-full max-w-md transform rounded-xl bg-white p-8 text-center shadow-2xl transition-all duration-300 ease-in-out hover:scale-105">
         <h2 className="mb-2 flex items-center justify-center gap-2 text-3xl font-bold text-slate-800">
           Reset Password <span role="img" aria-label="lock">🔒</span>
