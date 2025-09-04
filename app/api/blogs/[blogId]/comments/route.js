@@ -62,7 +62,7 @@ export async function POST(req, { params }) {
                         body: JSON.stringify({
                             userId: blogAuthorId, // Send notification to the blog's author
                             title: 'New Comment on Your Blog',
-                            message: `Someone commented on your post: "${blogTitle}"`,
+                            message: `A new commenton your post: "${blogTitle}"`,
                             link: `/blog/${blogId}`, // Link directly to the blog post
                         }),
                     });
